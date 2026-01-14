@@ -1,0 +1,101 @@
+<div class="signup-container">
+  <mat-card class="signup-card">
+    <mat-card-header>
+      <mat-card-title>註冊新帳號</mat-card-title>
+      <mat-card-subtitle>測試機借用管理系統</mat-card-subtitle>
+    </mat-card-header>
+    <mat-card-content>
+      <form [formGroup]="signupForm" (ngSubmit)="onSubmit()">
+        <mat-form-field appearance="outline">
+          <mat-label>Email</mat-label>
+          <input
+            matInput
+            formControlName="email"
+            placeholder="請輸入 Email"
+            required
+          />
+          <mat-error *ngIf="signupForm.get('email')?.hasError('required')">
+            Email 為必填
+          </mat-error>
+          <mat-error *ngIf="signupForm.get('email')?.hasError('email')">
+            請輸入有效的 Email 格式
+          </mat-error>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>密碼</mat-label>
+          <input
+            matInput
+            formControlName="password"
+            type="password"
+            placeholder="請輸入密碼"
+            required
+          />
+          <mat-error *ngIf="signupForm.get('password')?.hasError('required')">
+            密碼為必填
+          </mat-error>
+          <mat-error *ngIf="signupForm.get('password')?.hasError('minlength')">
+            密碼長度至少需要 8 個字元
+          </mat-error>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>確認密碼</mat-label>
+          <input
+            matInput
+            formControlName="confirmPassword"
+            type="password"
+            placeholder="請再次輸入密碼"
+            required
+          />
+          <mat-icon
+            matSuffix
+            *ngIf="signupForm.get('confirmPassword')?.value && passwordsMatch"
+            color="primary"
+            >check_circle</mat-icon
+          >
+          <mat-icon matSuffix *ngIf="confirmPasswordHasError" color="warn"
+            >error</mat-icon
+          >
+          <mat-error
+            *ngIf="
+              signupForm.get('confirmPassword')?.hasError('required') &&
+              signupForm.get('confirmPassword')?.touched
+            "
+          >
+            確認密碼為必填
+          </mat-error>
+          <mat-error
+            *ngIf="
+              signupForm.get('confirmPassword')?.hasError('passwordMismatch') &&
+              signupForm.get('confirmPassword')?.touched
+            "
+          >
+            兩次輸入的密碼不一致
+          </mat-error>
+        </mat-form-field>
+
+        <div *ngIf="errorMessage" class="error-message">
+          {{ errorMessage }}
+        </div>
+
+        <div *ngIf="successMessage" class="success-message">
+          {{ successMessage }}
+        </div>
+
+        <button
+          mat-raised-button
+          color="primary"
+          type="submit"
+          [disabled]="signupForm.invalid || loading"
+        >
+          {{ loading ? "註冊中..." : "註冊" }}
+        </button>
+      </form>
+      <div class="login-link">
+        <span>已經有帳號了？</span>
+        <a routerLink="/login">點此登入</a>
+      </div>
+    </mat-card-content>
+  </mat-card>
+</div>

@@ -1,0 +1,42 @@
+<div class="login-container">
+  <mat-card class="login-card">
+    <mat-card-header>
+      <mat-card-title>登入</mat-card-title>
+      <mat-card-subtitle>測試機借用管理系統</mat-card-subtitle>
+    </mat-card-header>
+    <mat-card-content>
+      <form [formGroup]="loginForm" (ngSubmit)="onSubmit()">
+        <mat-form-field appearance="outline">
+          <mat-label>Email</mat-label>
+          <input matInput formControlName="email" placeholder="請輸入 Email" required>
+          <mat-error *ngIf="loginForm.get('email')?.hasError('required')">
+            Email 為必填
+          </mat-error>
+          <mat-error *ngIf="loginForm.get('email')?.hasError('email')">
+            請輸入有效的 Email 格式
+          </mat-error>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>密碼</mat-label>
+          <input matInput formControlName="password" type="password" placeholder="請輸入密碼" required>
+          <mat-error *ngIf="loginForm.get('password')?.hasError('required')">
+            密碼為必填
+          </mat-error>
+        </mat-form-field>
+
+        <div *ngIf="errorMessage" class="error-message">
+          {{ errorMessage }}
+        </div>
+
+        <button mat-raised-button color="primary" type="submit" [disabled]="loginForm.invalid || loading">
+          {{ loading ? '登入中...' : '登入' }}
+        </button>
+      </form>
+      <div class="signup-link">
+        <span>還沒有帳號嗎？</span>
+        <a routerLink="/signup">點此註冊</a>
+      </div>
+    </mat-card-content>
+  </mat-card>
+</div>
