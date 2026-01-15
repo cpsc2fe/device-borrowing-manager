@@ -5,6 +5,9 @@
     "ng": "ng",
     "start": "ng serve",
     "build": "ng build",
+    "build:pages": "ng build --base-href ${BASE_HREF:-/${CI_PROJECT_NAME:-device-borrowing-manager}/} --deploy-url ${BASE_HREF:-/${CI_PROJECT_NAME:-device-borrowing-manager}/}",
+    "pages:prepare": "rm -rf public && mkdir -p public && cp -R dist/device-borrowing-manager/* public",
+    "deploy:pages": "npm run build:pages && npm run pages:prepare",
     "watch": "ng build --watch --configuration development",
     "test": "ng test"
   },

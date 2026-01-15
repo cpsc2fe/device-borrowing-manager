@@ -1,0 +1,15 @@
+image: node:20
+
+stages:
+  - build
+
+pages:
+  stage: build
+  script:
+    - npm ci
+    - npm run deploy:pages
+  artifacts:
+    paths:
+      - public
+  only:
+    - main
