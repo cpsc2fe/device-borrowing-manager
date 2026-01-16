@@ -486,7 +486,7 @@ supabase functions deploy send-telegram-notification
 當借用/歸還發生時，自動呼叫 Edge Function 發送通知。
 
 ### 7.1 建立 Trigger Function
-在 SQL Editor 執行：
+在 SQL Editor 執行（也可直接使用 `sql/telegram-trigger.sql` 內容）：
 
 ```sql
 -- 需要先啟用 http extension
