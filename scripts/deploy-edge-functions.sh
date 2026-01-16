@@ -20,7 +20,7 @@ if [[ ! -f "supabase/config.toml" ]]; then
 fi
 
 supabase link --project-ref "$PROJECT_REF"
-supabase secrets set SUPABASE_SERVICE_ROLE_KEY="$SUPABASE_SERVICE_ROLE_KEY"
+supabase secrets set SERVICE_ROLE_KEY="$SUPABASE_SERVICE_ROLE_KEY"
 supabase functions deploy create-member
 supabase functions deploy send-telegram-notification
 
