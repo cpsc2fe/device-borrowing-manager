@@ -1,13 +1,17 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-PROJECT_REF="${PROJECT_REF:-iphdqxncfzsxfrmzuuab}"
-
 if [[ -f ".env" ]]; then
   set -a
   # shellcheck source=/dev/null
   . ".env"
   set +a
+fi
+
+PROJECT_REF="${SUPABASE_PROJECT_REF:-}"
+if [[ -z "$PROJECT_REF" ]]; then
+  echo "SUPABASE_PROJECT_REF is required. Set it in .env or export it."
+  exit 1
 fi
 
 if ! command -v supabase >/dev/null 2>&1; then
