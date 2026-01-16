@@ -3,13 +3,20 @@ set -euo pipefail
 
 PROJECT_REF="${PROJECT_REF:-iphdqxncfzsxfrmzuuab}"
 
+if [[ -f ".env" ]]; then
+  set -a
+  # shellcheck source=/dev/null
+  . ".env"
+  set +a
+fi
+
 if ! command -v supabase >/dev/null 2>&1; then
   echo "Supabase CLI not found. Install it first (e.g., npm install -g supabase)."
   exit 1
 fi
 
 if [[ -z "${SUPABASE_SERVICE_ROLE_KEY:-}" ]]; then
-  echo "SUPABASE_SERVICE_ROLE_KEY is required. Export it before running."
+  echo "SUPABASE_SERVICE_ROLE_KEY is required. Set it in .env or export it."
   exit 1
 fi
 
