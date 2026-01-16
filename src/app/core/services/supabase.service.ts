@@ -14,7 +14,12 @@ export class SupabaseService {
   constructor() {
     this.supabase = createClient(
       environment.supabaseUrl,
-      environment.supabaseKey
+      environment.supabaseKey,
+      {
+        auth: {
+          storageKey: 'sb-iphdqxncfzsxfrmzuuab-auth-token-v2'
+        }
+      }
     );
 
     // 監聽認證狀態變化
