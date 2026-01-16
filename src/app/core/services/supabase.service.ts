@@ -17,7 +17,9 @@ export class SupabaseService {
       environment.supabaseKey,
       {
         auth: {
-          storageKey: 'sb-iphdqxncfzsxfrmzuuab-auth-token-v2'
+          storageKey: 'sb-iphdqxncfzsxfrmzuuab-auth-token-v2',
+          lock: async (_name, _timeout, fn) => await fn(),
+          lockAcquireTimeout: 0
         }
       }
     );
