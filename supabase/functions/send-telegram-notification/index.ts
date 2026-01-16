@@ -39,14 +39,20 @@ serve(async (req) => {
 
     const payload: NotificationPayload = await req.json();
 
+    const { data: devices } = await supabase
+      .from("devices_with_borrower")
+      .select("name,status,borrower_email")
+      .order("name");
+
     const now = new Date().toLocaleString("zh-TW", { timeZone: "Asia/Taipei" });
     let message = "";
 
     if (payload.type === "borrow") {
       message = [
         "\ud83d\udcf1 \u8a2d\u5099\u501f\u7528\u901a\u77e5",
+        "━━━━━━━━━━━━━━━",
         `\u8a2d\u5099\uff1a${payload.deviceName}`,
-        `\u501f\u7528\u4eba\uff1a${payload.userEmail}`,
+        `\u501f\u7528\u8005\uff1a${payload.userEmail}`,
         payload.purpose ? `\u7528\u9014\uff1a${payload.purpose}` : null,
         `\u6642\u9593\uff1a${now}`,
       ]
@@ -55,8 +61,9 @@ serve(async (req) => {
     } else if (payload.type === "return") {
       message = [
         "\u2705 \u8a2d\u5099\u6b78\u9084\u901a\u77e5",
+        "━━━━━━━━━━━━━━━",
         `\u8a2d\u5099\uff1a${payload.deviceName}`,
-        `\u6b78\u9084\u4eba\uff1a${payload.userEmail}`,
+        `\u6b78\u9084\u8005\uff1a${payload.userEmail}`,
         `\u6642\u9593\uff1a${now}`,
       ].join("\n");
     } else {
@@ -66,14 +73,35 @@ serve(async (req) => {
       });
     }
 
+    if (devices && devices.length > 0) {
+      message += "\n\n\ud83d\udcca \u76ee\u524d\u72c0\u614b\uff1a";
+      devices.forEach((device) => {
+        if (device.status === "available") {
+          message += `\n\ud83d\udfe2 ${device.name} - \u53ef\u501f\u7528`;
+        } else if (device.status === "borrowed") {
+          const borrower = device.borrower_email || "\u672a\u77e5";
+          message += `\n\ud83d\udd34 ${device.name} - ${borrower}`;
+        } else if (device.status === "maintenance") {
+          message += `\n\ud83d\udfe1 ${device.name} - \u7dad\u4fee\u4e2d`;
+        }
+      });
+    }
+
     const telegramUrl = `https://api.telegram.org/bot${config.bot_token}/sendMessage`;
+    const telegramPayload: Record<string, unknown> = {
+      chat_id: config.chat_id,
+      text: message,
+      parse_mode: "HTML",
+    };
+
+    if (config.thread_id) {
+      telegramPayload.message_thread_id = parseInt(config.thread_id, 10);
+    }
+
     const response = await fetch(telegramUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        chat_id: config.chat_id,
-        text: message,
-      }),
+      body: JSON.stringify(telegramPayload),
     });
 
     if (!response.ok) {
