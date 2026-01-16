@@ -22,5 +22,6 @@ fi
 supabase link --project-ref "$PROJECT_REF"
 supabase secrets set SUPABASE_SERVICE_ROLE_KEY="$SUPABASE_SERVICE_ROLE_KEY"
 supabase functions deploy create-member
+supabase functions deploy send-telegram-notification
 
-echo "Edge Function deployed: create-member"
+echo "Edge Functions deployed: create-member, send-telegram-notification"
