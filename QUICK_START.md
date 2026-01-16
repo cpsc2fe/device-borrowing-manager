@@ -53,7 +53,7 @@ npm install -g @angular/cli
 ### 2.1 執行 SQL 腳本
 1. 在 Supabase Dashboard 點擊左側 **SQL Editor**
 2. 點擊 "New query"
-3. 複製 `database.sql` 的完整內容貼上
+3. 複製 `sql/database.sql` 的完整內容貼上
 4. 點擊 "Run" 執行
 
 如果看到綠色的 "Success" 訊息，表示資料庫設定完成。
@@ -177,7 +177,7 @@ device-borrowing-manager/
 │   ├── index.html
 │   ├── main.ts
 │   └── styles.css
-├── database.sql                  # 資料庫 Schema
+├── sql/database.sql              # 資料庫 Schema
 ├── angular.json
 ├── package.json
 └── tsconfig.json

@@ -55,7 +55,7 @@ service_role:    eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9... (僅用於後端，不�
 ### 2.1 執行 SQL 腳本
 1. 點擊左側選單 **SQL Editor**
 2. 點擊 "New query"
-3. 複製 `database.sql` 的完整內容
+3. 複製 `sql/database.sql` 的完整內容
 4. 貼上並點擊 "Run"
 
 ### 2.2 驗證資料表建立成功
@@ -83,7 +83,7 @@ service_role:    eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9... (僅用於後端，不�
 | telegram_config | Admin | Admin | Admin | Admin |
 
 ### 3.2 啟用 RLS
-在 SQL Editor 執行以下指令（已包含在 database.sql 中）：
+在 SQL Editor 執行以下指令（已包含在 sql/database.sql 中）：
 
 ```sql
 -- 啟用 RLS
