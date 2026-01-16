@@ -1,7 +1,7 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router, RouterModule } from '@angular/router';
+import { Router } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
@@ -17,7 +17,6 @@ import { SupabaseService } from '../../../core/services/supabase.service';
   imports: [
     CommonModule,
     FormsModule,
-    RouterModule,
     MatCardModule,
     MatFormFieldModule,
     MatInputModule,
@@ -78,8 +77,6 @@ import { SupabaseService } from '../../../core/services/supabase.service';
 
           <div class="links">
             <a (click)="forgotPassword()" class="link">忘記密碼？</a>
-            <span class="divider">|</span>
-            <a routerLink="/signup" class="link">註冊帳號</a>
           </div>
         </mat-card-content>
       </mat-card>
@@ -153,10 +150,6 @@ import { SupabaseService } from '../../../core/services/supabase.service';
       text-decoration: underline;
     }
 
-    .divider {
-      margin: 0 8px;
-      color: rgba(0,0,0,0.26);
-    }
   `]
 })
 export class LoginComponent {

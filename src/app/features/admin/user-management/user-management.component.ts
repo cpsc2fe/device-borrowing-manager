@@ -1,5 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { MatCardModule } from '@angular/material/card';
 import { MatTableModule } from '@angular/material/table';
 import { MatButtonModule } from '@angular/material/button';
@@ -9,6 +10,9 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatMenuModule } from '@angular/material/menu';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
+import { MatSelectModule } from '@angular/material/select';
 import { SupabaseService } from '../../../core/services/supabase.service';
 import { ConfirmDialogComponent } from '../../../shared/components/confirm-dialog/confirm-dialog.component';
 
@@ -24,6 +28,7 @@ interface UserInfo {
   standalone: true,
   imports: [
     CommonModule,
+    FormsModule,
     MatCardModule,
     MatTableModule,
     MatButtonModule,
@@ -32,7 +37,10 @@ interface UserInfo {
     MatProgressSpinnerModule,
     MatDialogModule,
     MatSnackBarModule,
-    MatMenuModule
+    MatMenuModule,
+    MatFormFieldModule,
+    MatInputModule,
+    MatSelectModule
   ],
   template: `
     <div class="user-management-container">
@@ -40,11 +48,51 @@ interface UserInfo {
         <h1>使用者管理</h1>
       </div>
 
-      <mat-card class="info-card">
-        <mat-icon>info</mat-icon>
-        <p>
-          新增使用者請前往 Supabase Dashboard → Authentication → Users → Add user
-        </p>
+      <mat-card class="create-card">
+        <div class="create-header">
+          <mat-icon>person_add</mat-icon>
+          <h2>新增會員</h2>
+        </div>
+        <form (ngSubmit)="createUser()" #createForm="ngForm" class="create-form">
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Email</mat-label>
+            <input
+              matInput
+              type="email"
+              [(ngModel)]="newUserEmail"
+              name="newUserEmail"
+              required
+              email
+              [disabled]="creating">
+          </mat-form-field>
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>初始密碼</mat-label>
+            <input
+              matInput
+              type="text"
+              [(ngModel)]="newUserPassword"
+              name="newUserPassword"
+              required
+              minlength="6"
+              [disabled]="creating">
+          </mat-form-field>
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>角色</mat-label>
+            <mat-select [(ngModel)]="newUserRole" name="newUserRole" [disabled]="creating">
+              <mat-option value="user">一般使用者</mat-option>
+              <mat-option value="admin">管理員</mat-option>
+            </mat-select>
+          </mat-form-field>
+          <button
+            mat-raised-button
+            color="primary"
+            type="submit"
+            [disabled]="creating || !createForm.valid">
+            <mat-spinner diameter="18" *ngIf="creating"></mat-spinner>
+            <span *ngIf="!creating">建立會員</span>
+          </button>
+        </form>
+        <p class="create-note">密碼至少 6 碼，建立後請會員自行修改密碼。</p>
       </mat-card>
 
       <!-- 載入中 -->
@@ -117,23 +165,36 @@ interface UserInfo {
       font-size: 24px;
     }
 
-    .info-card {
+    .create-card {
+      padding: 20px;
+      margin-bottom: 24px;
+    }
+
+    .create-header {
       display: flex;
       align-items: center;
-      gap: 12px;
-      padding: 16px;
-      margin-bottom: 24px;
-      background: #e3f2fd;
+      gap: 8px;
+      margin-bottom: 16px;
     }
 
-    .info-card mat-icon {
-      color: #1976d2;
-    }
-
-    .info-card p {
+    .create-header h2 {
       margin: 0;
-      font-size: 14px;
-      color: rgba(0,0,0,0.7);
+      font-size: 18px;
+    }
+
+    .create-form {
+      display: grid;
+      gap: 12px;
+    }
+
+    .full-width {
+      width: 100%;
+    }
+
+    .create-note {
+      margin: 12px 0 0;
+      font-size: 12px;
+      color: rgba(0,0,0,0.6);
     }
 
     .loading {
@@ -174,6 +235,10 @@ export class UserManagementComponent implements OnInit {
   displayedColumns = ['email', 'role', 'created_at', 'actions'];
   loading = true;
   currentUserId: string | null = null;
+  newUserEmail = '';
+  newUserPassword = '';
+  newUserRole: 'admin' | 'user' = 'user';
+  creating = false;
 
   constructor(
     private supabase: SupabaseService,
@@ -201,6 +266,25 @@ export class UserManagementComponent implements OnInit {
       this.snackBar.open('載入使用者失敗', '關閉', { duration: 3000 });
     } finally {
       this.loading = false;
+    }
+  }
+
+  async createUser() {
+    if (!this.newUserEmail || !this.newUserPassword) return;
+
+    this.creating = true;
+    try {
+      await this.supabase.createMember(this.newUserEmail, this.newUserPassword, this.newUserRole);
+      this.snackBar.open('新增使用者成功', '關閉', { duration: 3000 });
+      this.newUserEmail = '';
+      this.newUserPassword = '';
+      this.newUserRole = 'user';
+      await this.loadUsers();
+    } catch (error: any) {
+      console.error('Create user error:', error);
+      this.snackBar.open(error.message || '新增使用者失敗', '關閉', { duration: 5000 });
+    } finally {
+      this.creating = false;
     }
   }
 

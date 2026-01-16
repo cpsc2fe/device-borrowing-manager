@@ -8,11 +8,6 @@ export const routes: Routes = [
     path: 'login',
     loadComponent: () => import('./features/auth/login/login.component').then(m => m.LoginComponent)
   },
-  // 註冊頁面
-  {
-    path: 'signup',
-    loadComponent: () => import('./features/auth/signup/signup.component').then(m => m.SignupComponent)
-  },
   // 需要登入的頁面
   {
     path: '',

@@ -66,6 +66,35 @@ export class SupabaseService {
     return data;
   }
 
+  // 管理員新增會員（不影響目前登入狀態）
+  async createMember(email: string, password: string, role: 'admin' | 'user') {
+    const adminClient = createClient(environment.supabaseUrl, environment.supabaseKey, {
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+        detectSessionInUrl: false
+      }
+    });
+
+    const { data, error } = await adminClient.auth.signUp({
+      email,
+      password
+    });
+
+    if (error) throw error;
+    const userId = data.user?.id;
+    if (!userId) {
+      throw new Error('建立使用者失敗，缺少使用者 ID');
+    }
+
+    const { error: insertError } = await this.supabase
+      .from('users')
+      .insert({ id: userId, email, role });
+
+    if (insertError) throw insertError;
+    return data;
+  }
+
   // 登出
   async signOut() {
     const { error } = await this.supabase.auth.signOut();
