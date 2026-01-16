@@ -143,6 +143,7 @@ export class BorrowDialogComponent {
 
       if (result.success) {
         this.snackBar.open('借用成功！', '關閉', { duration: 3000 });
+        await this.borrowService.notifyBorrow(this.data.device.name, this.purpose || undefined);
         this.dialogRef.close(true);
       } else {
         this.snackBar.open(result.error || '借用失敗', '關閉', { duration: 5000 });

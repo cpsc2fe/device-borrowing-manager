@@ -215,6 +215,13 @@ ON public.telegram_config FOR ALL
 TO authenticated
 USING (public.is_admin());
 
+-- 允許登入者讀取 Telegram 設定（前端直接發送通知用）
+DROP POLICY IF EXISTS "Authenticated can read telegram_config" ON public.telegram_config;
+CREATE POLICY "Authenticated can read telegram_config"
+ON public.telegram_config FOR SELECT
+TO authenticated
+USING (true);
+
 -- ============================================
 -- 6. 建立 Trigger：自動建立 users 記錄
 -- ============================================

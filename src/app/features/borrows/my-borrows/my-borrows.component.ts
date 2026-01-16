@@ -332,6 +332,9 @@ export class MyBorrowsComponent implements OnInit {
           const response = await this.borrowService.returnDevice(borrow.id);
           if (response.success) {
             this.snackBar.open('歸還成功！', '關閉', { duration: 3000 });
+            if (borrow.devices?.name) {
+              await this.borrowService.notifyReturn(borrow.devices.name);
+            }
             await this.loadBorrows();
           } else {
             this.snackBar.open(response.error || '歸還失敗', '關閉', { duration: 5000 });

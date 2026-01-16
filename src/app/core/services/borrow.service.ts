@@ -46,6 +46,16 @@ export class BorrowService {
     return data;
   }
 
+  async notifyBorrow(deviceName: string, purpose?: string) {
+    const userEmail = this.supabase.currentUserValue?.email || '未知';
+    await this.sendTelegramNotification('borrow', deviceName, userEmail, purpose);
+  }
+
+  async notifyReturn(deviceName: string) {
+    const userEmail = this.supabase.currentUserValue?.email || '未知';
+    await this.sendTelegramNotification('return', deviceName, userEmail);
+  }
+
   // 取得我的借用記錄
   async getMyBorrows(): Promise<BorrowWithDevice[]> {
     const user = this.supabase.currentUserValue;
@@ -95,5 +105,82 @@ export class BorrowService {
 
     if (error) throw error;
     return data as BorrowWithDevice[];
+  }
+
+  private async sendTelegramNotification(
+    type: 'borrow' | 'return',
+    deviceName: string,
+    userEmail: string,
+    purpose?: string
+  ) {
+    try {
+      const { data: config } = await this.supabase.client
+        .from('telegram_config')
+        .select('*')
+        .limit(1)
+        .single();
+
+      if (!config?.is_enabled || !config.bot_token || !config.chat_id) {
+        return;
+      }
+
+      const { data: devices } = await this.supabase.client
+        .from('devices_with_borrower')
+        .select('name,status,borrower_email')
+        .order('name');
+
+      const now = new Date().toLocaleString('zh-TW');
+      let message = '';
+
+      if (type === 'borrow') {
+        message = [
+          '📱 設備借用通知',
+          '━━━━━━━━━━━━━━━',
+          `設備：${deviceName}`,
+          `借用者：${userEmail}`,
+          purpose ? `用途：${purpose}` : null,
+          `時間：${now}`
+        ].filter(Boolean).join('\n');
+      } else {
+        message = [
+          '✅ 設備歸還通知',
+          '━━━━━━━━━━━━━━━',
+          `設備：${deviceName}`,
+          `歸還者：${userEmail}`,
+          `時間：${now}`
+        ].join('\n');
+      }
+
+      if (devices?.length) {
+        message += '\n\n📊 目前狀態：';
+        devices.forEach((device) => {
+          if (device.status === 'available') {
+            message += `\n🟢 ${device.name} - 可借用`;
+          } else if (device.status === 'borrowed') {
+            const borrower = device.borrower_email || '未知';
+            message += `\n🔴 ${device.name} - ${borrower}`;
+          } else if (device.status === 'maintenance') {
+            message += `\n🟡 ${device.name} - 維修中`;
+          }
+        });
+      }
+
+      const payload: Record<string, unknown> = {
+        chat_id: config.chat_id,
+        text: message
+      };
+
+      if (config.thread_id) {
+        payload.message_thread_id = parseInt(config.thread_id, 10);
+      }
+
+      await fetch(`https://api.telegram.org/bot${config.bot_token}/sendMessage`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+    } catch (error) {
+      console.error('Telegram notify error:', error);
+    }
   }
 }
