@@ -226,7 +226,17 @@ export class DeviceFormDialogComponent {
     private snackBar: MatSnackBar
   ) {
     if (data.mode === 'edit' && data.device) {
-      this.formData = { ...data.device };
+      // 只複製 Device 介面的欄位，排除 DeviceWithBorrower 的額外欄位
+      this.formData = {
+        name: data.device.name,
+        brand: data.device.brand,
+        model: data.device.model,
+        os: data.device.os,
+        os_version: data.device.os_version,
+        status: data.device.status,
+        notes: data.device.notes,
+        image_url: data.device.image_url
+      };
       this.imagePreview = data.device.image_url;
     }
   }
