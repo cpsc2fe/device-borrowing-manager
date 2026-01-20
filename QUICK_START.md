@@ -142,7 +142,9 @@ ng serve
 
 1. 建立 Telegram Bot
 2. 取得 Bot Token 和 Chat ID
-3. 在系統設定頁面輸入相關資訊
+3. 在系統設定頁面輸入相關資訊並啟用
+
+> 💡 通知由資料庫 Trigger 自動發送（使用 pg_net 擴充），Bot Token 安全存放在資料庫中
 
 ---
 
@@ -199,7 +201,8 @@ device-borrowing-manager/
 │   │   ├── environment.ts        # 開發環境
 │   │   └── environment.prod.ts   # 生產環境
 │   └── styles.css
-├── sql/database.sql              # 資料庫 Schema
+├── sql/
+│   └── database.sql              # 資料庫 Schema（含 Telegram Trigger）
 ├── angular.json
 └── package.json
 ```

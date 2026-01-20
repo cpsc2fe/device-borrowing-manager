@@ -366,12 +366,7 @@ export class DevicePageComponent implements OnInit {
 
       if (result.success) {
         this.snackBar.open('借用成功！', '關閉', { duration: 3000 });
-        await this.borrowService.notifyBorrow(
-          this.device.name,
-          this.borrowerName.trim(),
-          this.borrowerEmail.trim() || undefined,
-          this.purpose.trim() || undefined
-        );
+        // Telegram 通知由資料庫 trigger 自動處理
         await this.loadDevice(this.device.id);
         // Clear form
         this.borrowerName = '';
@@ -408,10 +403,7 @@ export class DevicePageComponent implements OnInit {
           const result = await this.borrowService.returnDevice(this.device.active_borrow_id);
           if (result.success) {
             this.snackBar.open('歸還成功！', '關閉', { duration: 3000 });
-            await this.borrowService.notifyReturn(
-              this.device.name,
-              this.device.borrower_name || '未知'
-            );
+            // Telegram 通知由資料庫 trigger 自動處理
             await this.loadDevice(this.device.id);
           } else {
             this.snackBar.open(result.error || '歸還失敗', '關閉', { duration: 5000 });

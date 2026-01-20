@@ -7,7 +7,9 @@
       "Bash(git remote add:*)",
       "Bash(git remote:*)",
       "Bash(git remote remove:*)",
-      "Bash(ls:*)"
+      "Bash(ls:*)",
+      "Bash(git add:*)",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nrefactor: move Telegram notifications to database trigger\n\n- Merge telegram-trigger.sql into database.sql \\(single file setup\\)\n- Remove frontend Telegram notification code from borrow.service.ts\n- Update device-page.component.ts to remove notification calls\n- Restrict telegram_config RLS to admin-only \\(secure bot token\\)\n- Update QUICK_START.md documentation\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")"
     ]
   }
 }

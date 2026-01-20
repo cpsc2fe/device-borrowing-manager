@@ -5,8 +5,6 @@
 -- 1. 登入 Supabase Dashboard
 -- 2. 前往 SQL Editor
 -- 3. 貼上此腳本並執行
---
--- 如果是從舊版本升級，請先執行 sql/migrate-to-qr.sql
 -- ============================================
 
 -- ============================================
@@ -181,19 +179,16 @@ USING (public.is_admin());
 
 -- ----- telegram_config 資料表 -----
 
--- 管理員可以完全管理 Telegram 設定
+-- 只有管理員可以讀取和管理 Telegram 設定
+-- Bot Token 是敏感資訊，不應暴露給前端
 DROP POLICY IF EXISTS "Admin can manage telegram_config" ON public.telegram_config;
 CREATE POLICY "Admin can manage telegram_config"
 ON public.telegram_config FOR ALL
 TO authenticated
 USING (public.is_admin());
 
--- 任何人可以讀取 Telegram 設定（前端發送通知用）
+-- 移除匿名讀取權限（通知改由 Database Trigger 處理）
 DROP POLICY IF EXISTS "Anyone can read telegram_config" ON public.telegram_config;
-CREATE POLICY "Anyone can read telegram_config"
-ON public.telegram_config FOR SELECT
-TO anon, authenticated
-USING (true);
 
 -- ============================================
 -- 6. 建立 Trigger：自動建立 users 記錄
@@ -382,6 +377,139 @@ TO authenticated
 USING (bucket_id = 'device-images' AND public.is_admin());
 
 -- ============================================
+-- 12. 啟用 pg_net 擴充套件（用於 Telegram 通知）
+-- ============================================
+
+CREATE EXTENSION IF NOT EXISTS pg_net WITH SCHEMA extensions;
+
+-- ============================================
+-- 13. 建立 Telegram 通知函數與觸發器
+-- ============================================
+
+-- 發送 Telegram 通知的函數
+CREATE OR REPLACE FUNCTION public.send_telegram_notification()
+RETURNS TRIGGER AS $$
+DECLARE
+    v_config RECORD;
+    v_device RECORD;
+    v_message TEXT;
+    v_payload JSONB;
+    v_all_devices RECORD;
+    v_borrower_display TEXT;
+    v_now TEXT;
+BEGIN
+    -- 取得 Telegram 設定
+    SELECT * INTO v_config FROM public.telegram_config LIMIT 1;
+
+    -- 如果未啟用或缺少設定，直接返回
+    IF v_config IS NULL OR NOT v_config.is_enabled OR v_config.bot_token IS NULL OR v_config.chat_id IS NULL THEN
+        RETURN COALESCE(NEW, OLD);
+    END IF;
+
+    -- 取得設備資訊
+    SELECT * INTO v_device FROM public.devices WHERE id = COALESCE(NEW.device_id, OLD.device_id);
+
+    IF v_device IS NULL THEN
+        RETURN COALESCE(NEW, OLD);
+    END IF;
+
+    -- 格式化時間
+    v_now := TO_CHAR(NOW() AT TIME ZONE 'Asia/Taipei', 'YYYY-MM-DD HH24:MI:SS');
+
+    -- 建立借用者顯示名稱
+    IF NEW.borrower_email IS NOT NULL AND NEW.borrower_email != '' THEN
+        v_borrower_display := NEW.borrower_name || ' (' || NEW.borrower_email || ')';
+    ELSE
+        v_borrower_display := NEW.borrower_name;
+    END IF;
+
+    -- 根據操作類型建立訊息
+    IF TG_OP = 'INSERT' THEN
+        -- 借用通知
+        v_message := '📱 設備借用通知' || E'\n';
+        v_message := v_message || '━━━━━━━━━━━━━━━' || E'\n';
+        v_message := v_message || '設備：' || v_device.name || E'\n';
+        v_message := v_message || '借用者：' || v_borrower_display || E'\n';
+        IF NEW.purpose IS NOT NULL AND NEW.purpose != '' THEN
+            v_message := v_message || '用途：' || NEW.purpose || E'\n';
+        END IF;
+        v_message := v_message || '時間：' || v_now;
+
+    ELSIF TG_OP = 'UPDATE' AND OLD.status = 'active' AND NEW.status = 'returned' THEN
+        -- 歸還通知
+        v_message := '✅ 設備歸還通知' || E'\n';
+        v_message := v_message || '━━━━━━━━━━━━━━━' || E'\n';
+        v_message := v_message || '設備：' || v_device.name || E'\n';
+        v_message := v_message || '歸還者：' || NEW.borrower_name || E'\n';
+        v_message := v_message || '時間：' || v_now;
+    ELSE
+        -- 其他情況不發送通知
+        RETURN COALESCE(NEW, OLD);
+    END IF;
+
+    -- 取得所有設備狀態
+    v_message := v_message || E'\n\n📊 目前狀態：';
+
+    FOR v_all_devices IN
+        SELECT d.name, d.status, b.borrower_name as current_borrower
+        FROM public.devices d
+        LEFT JOIN public.borrows b ON d.id = b.device_id AND b.status = 'active'
+        ORDER BY d.name
+    LOOP
+        IF v_all_devices.status = 'available' THEN
+            v_message := v_message || E'\n' || '🟢 ' || v_all_devices.name || ' - 可借用';
+        ELSIF v_all_devices.status = 'borrowed' THEN
+            v_message := v_message || E'\n' || '🔴 ' || v_all_devices.name || ' - ' || COALESCE(v_all_devices.current_borrower, '未知');
+        ELSIF v_all_devices.status = 'maintenance' THEN
+            v_message := v_message || E'\n' || '🟡 ' || v_all_devices.name || ' - 維修中';
+        END IF;
+    END LOOP;
+
+    -- 建立 Telegram API payload
+    v_payload := jsonb_build_object(
+        'chat_id', v_config.chat_id,
+        'text', v_message
+    );
+
+    -- 如果有 thread_id，加入 payload
+    IF v_config.thread_id IS NOT NULL AND v_config.thread_id != '' THEN
+        v_payload := v_payload || jsonb_build_object('message_thread_id', v_config.thread_id::INTEGER);
+    END IF;
+
+    -- 使用 pg_net 發送 HTTP POST 請求到 Telegram API
+    PERFORM net.http_post(
+        url := 'https://api.telegram.org/bot' || v_config.bot_token || '/sendMessage',
+        headers := '{"Content-Type": "application/json"}'::JSONB,
+        body := v_payload
+    );
+
+    RETURN COALESCE(NEW, OLD);
+EXCEPTION
+    WHEN OTHERS THEN
+        -- 發生錯誤時記錄但不阻止操作
+        RAISE WARNING 'Telegram notification failed: %', SQLERRM;
+        RETURN COALESCE(NEW, OLD);
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- 刪除舊的觸發器（如果存在）
+DROP TRIGGER IF EXISTS on_borrow_created ON public.borrows;
+DROP TRIGGER IF EXISTS on_borrow_returned ON public.borrows;
+
+-- 借用時發送通知
+CREATE TRIGGER on_borrow_created
+    AFTER INSERT ON public.borrows
+    FOR EACH ROW
+    EXECUTE FUNCTION public.send_telegram_notification();
+
+-- 歸還時發送通知
+CREATE TRIGGER on_borrow_returned
+    AFTER UPDATE ON public.borrows
+    FOR EACH ROW
+    WHEN (OLD.status = 'active' AND NEW.status = 'returned')
+    EXECUTE FUNCTION public.send_telegram_notification();
+
+-- ============================================
 -- 完成！
 -- ============================================
 -- 執行完畢後，你應該可以在 Table Editor 看到以下資料表：
@@ -396,5 +524,6 @@ USING (bucket_id = 'device-images' AND public.is_admin());
 -- 接下來請：
 -- 1. 透過 Authentication > Users 建立管理員帳號
 -- 2. 在 Table Editor > users 將該使用者的 role 改為 'admin'
--- 3. 開始使用系統！
+-- 3. 在系統設定中配置 Telegram Bot Token 和 Chat ID
+-- 4. 開始使用系統！
 -- ============================================
