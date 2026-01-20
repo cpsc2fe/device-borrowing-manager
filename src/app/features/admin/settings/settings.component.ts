@@ -89,7 +89,7 @@ interface TelegramConfig {
 
         <mat-card-actions>
           <button mat-button
-                  color="primary"
+                  class="test-button"
                   (click)="testNotification()"
                   [disabled]="testing || !config.is_enabled || !config.bot_token || !config.chat_id">
             <mat-spinner diameter="18" *ngIf="testing"></mat-spinner>
@@ -149,6 +149,10 @@ interface TelegramConfig {
 
     mat-card {
       margin-bottom: 24px;
+      box-shadow: none;
+      border: 1px solid var(--app-border);
+      background: var(--app-surface);
+      border-radius: 3px;
     }
 
     mat-card-header {
@@ -174,6 +178,12 @@ interface TelegramConfig {
       display: flex;
       gap: 8px;
       justify-content: flex-end;
+      border-top: 1px solid var(--app-border);
+      padding-top: 12px;
+    }
+
+    .test-button {
+      color: var(--app-text);
     }
 
     mat-card-actions button mat-spinner {

@@ -94,7 +94,7 @@ import { QrDialogComponent } from '../../../shared/components/qr-dialog/qr-dialo
               <button mat-icon-button (click)="showQrCode(device)" matTooltip="QR Code">
                 <mat-icon>qr_code</mat-icon>
               </button>
-              <button mat-icon-button color="primary" (click)="openEditDialog(device)" matTooltip="編輯">
+              <button mat-icon-button class="edit-button" (click)="openEditDialog(device)" matTooltip="編輯">
                 <mat-icon>edit</mat-icon>
               </button>
               <button mat-icon-button color="warn" (click)="deleteDevice(device)" matTooltip="刪除">
@@ -144,6 +144,37 @@ import { QrDialogComponent } from '../../../shared/components/qr-dialog/qr-dialo
 
     .device-table {
       width: 100%;
+      background: var(--app-surface);
+      border: 1px solid var(--app-border);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+
+    .device-table .mat-mdc-header-row {
+      background: var(--app-surface-elev);
+    }
+
+    .device-table .mat-mdc-header-cell {
+      color: var(--app-text-muted);
+      font-weight: 500;
+    }
+
+    .device-table .mat-mdc-row {
+      border-bottom: 1px solid var(--app-border);
+    }
+
+    .device-table .mat-mdc-cell {
+      color: var(--app-text);
+    }
+
+    .device-table .mat-mdc-cell,
+    .device-table .mat-mdc-header-cell {
+      padding-top: 8px;
+      padding-bottom: 8px;
+    }
+
+    .edit-button {
+      color: var(--app-text);
     }
 
     .device-thumb {

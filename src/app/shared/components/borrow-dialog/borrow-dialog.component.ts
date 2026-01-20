@@ -68,10 +68,15 @@ export interface BorrowDialogResult {
   styles: [`
     mat-dialog-content {
       min-width: 300px;
+      overflow: visible;
     }
 
     .full-width {
       width: 100%;
+    }
+
+    mat-form-field {
+      margin-top: 4px;
     }
   `]
 })

@@ -139,6 +139,7 @@ import { SupabaseService } from '../../../core/services/supabase.service';
       width: 240px;
       display: flex;
       flex-direction: column;
+      background: var(--app-surface-elev);
     }
 
     .sidenav-header {
@@ -202,6 +203,7 @@ import { SupabaseService } from '../../../core/services/supabase.service';
       position: sticky;
       top: 0;
       z-index: 100;
+      background: var(--app-surface-elev) !important;
     }
 
     .toolbar-title {
