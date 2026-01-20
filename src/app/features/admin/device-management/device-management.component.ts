@@ -149,9 +149,9 @@ import { QrDialogComponent } from '../../../shared/components/qr-dialog/qr-dialo
     .device-thumb {
       width: 48px;
       height: 48px;
-      border-radius: 8px;
+      border-radius: 3px;
       overflow: hidden;
-      background: #f5f5f5;
+      background: var(--app-surface-elev);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -160,44 +160,44 @@ import { QrDialogComponent } from '../../../shared/components/qr-dialog/qr-dialo
     .device-thumb img {
       width: 100%;
       height: 100%;
-      object-fit: contain;
+      object-fit: cover;
     }
 
     .device-thumb mat-icon {
-      color: rgba(0,0,0,0.26);
+      color: var(--app-text-muted);
     }
 
     .device-model {
       font-size: 12px;
-      color: rgba(0,0,0,0.54);
+      color: var(--app-text-muted);
     }
 
     .status-chip {
       display: inline-block;
       padding: 4px 8px;
-      border-radius: 12px;
+      border-radius: 3px;
       font-size: 12px;
     }
 
     .status-chip.available {
-      background: #e8f5e9;
-      color: #2e7d32;
+      background: var(--app-success-bg);
+      color: var(--app-success);
     }
 
     .status-chip.borrowed {
-      background: #ffebee;
-      color: #c62828;
+      background: var(--app-danger-bg);
+      color: var(--app-danger);
     }
 
     .status-chip.maintenance {
-      background: #fff3e0;
-      color: #ef6c00;
+      background: var(--app-warning-bg);
+      color: var(--app-warning);
     }
 
     .empty-state {
       text-align: center;
       padding: 48px;
-      color: rgba(0,0,0,0.54);
+      color: var(--app-text-muted);
     }
 
     .empty-state mat-icon {

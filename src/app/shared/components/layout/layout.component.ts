@@ -31,8 +31,8 @@ import { SupabaseService } from '../../../core/services/supabase.service';
                    class="sidenav"
                    *ngIf="isAdmin">
         <div class="sidenav-header">
-          <span class="logo">📱</span>
-          <span class="title">測試機借用系統</span>
+          <img class="logo" src="assets/images/favicon.png" alt="借機機">
+          <span class="title">借機機</span>
         </div>
 
         <mat-nav-list>
@@ -71,8 +71,8 @@ import { SupabaseService } from '../../../core/services/supabase.service';
           <button mat-icon-button (click)="toggleSidenav()" *ngIf="isMobile && isAdmin">
             <mat-icon>menu</mat-icon>
           </button>
-          <span class="logo-small" *ngIf="!isAdmin">📱</span>
-          <span class="toolbar-title">{{ isAdmin ? pageTitle : '測試機借用系統' }}</span>
+          <img class="logo-small" *ngIf="!isAdmin" src="assets/images/favicon.png" alt="借機機">
+          <span class="toolbar-title">{{ isAdmin ? pageTitle : '借機機' }}</span>
           <span class="spacer"></span>
 
           <!-- 管理員選單 -->
@@ -146,15 +146,17 @@ import { SupabaseService } from '../../../core/services/supabase.service';
       display: flex;
       align-items: center;
       gap: 8px;
-      border-bottom: 1px solid rgba(0,0,0,0.12);
+      border-bottom: 1px solid var(--app-border);
     }
 
     .logo {
-      font-size: 24px;
+      width: 32px;
+      height: 32px;
     }
 
     .logo-small {
-      font-size: 20px;
+      width: 24px;
+      height: 24px;
       margin-right: 8px;
     }
 
@@ -165,27 +167,27 @@ import { SupabaseService } from '../../../core/services/supabase.service';
 
     .nav-divider {
       height: 1px;
-      background: rgba(0,0,0,0.12);
+      background: var(--app-border);
       margin: 8px 16px;
     }
 
     .nav-section-title {
       padding: 8px 16px;
       font-size: 12px;
-      color: rgba(0,0,0,0.54);
+      color: var(--app-text-muted);
       text-transform: uppercase;
     }
 
     .sidenav-footer {
       margin-top: auto;
       padding: 16px;
-      border-top: 1px solid rgba(0,0,0,0.12);
+      border-top: 1px solid var(--app-border);
       text-align: center;
     }
 
     .user-email {
       font-size: 12px;
-      color: rgba(0,0,0,0.54);
+      color: var(--app-text-muted);
       margin-bottom: 8px;
       word-break: break-all;
     }
@@ -221,7 +223,7 @@ import { SupabaseService } from '../../../core/services/supabase.service';
     .main-content {
       flex: 1;
       padding: 16px;
-      background: #fafafa;
+      background: var(--app-bg);
     }
 
     .main-content.with-bottom-nav {
@@ -231,8 +233,8 @@ import { SupabaseService } from '../../../core/services/supabase.service';
     .menu-email {
       padding: 8px 16px;
       font-size: 12px;
-      color: rgba(0,0,0,0.54);
-      border-bottom: 1px solid rgba(0,0,0,0.12);
+      color: var(--app-text-muted);
+      border-bottom: 1px solid var(--app-border);
     }
 
     .bottom-nav {
@@ -241,11 +243,11 @@ import { SupabaseService } from '../../../core/services/supabase.service';
       left: 0;
       right: 0;
       height: 64px;
-      background: white;
+      background: var(--app-surface);
       display: flex;
       justify-content: space-around;
       align-items: center;
-      box-shadow: 0 -2px 4px rgba(0,0,0,0.1);
+      box-shadow: 0 -2px 4px rgba(0,0,0,0.4);
       z-index: 100;
     }
 
@@ -254,13 +256,13 @@ import { SupabaseService } from '../../../core/services/supabase.service';
       flex-direction: column;
       align-items: center;
       text-decoration: none;
-      color: rgba(0,0,0,0.54);
+      color: var(--app-text-muted);
       font-size: 12px;
       padding: 8px;
     }
 
     .bottom-nav a.active {
-      color: #3f51b5;
+      color: var(--app-accent);
     }
 
     .bottom-nav mat-icon {
@@ -270,8 +272,8 @@ import { SupabaseService } from '../../../core/services/supabase.service';
     }
 
     mat-nav-list a.active {
-      background: rgba(63, 81, 181, 0.1);
-      color: #3f51b5;
+      background: var(--app-accent-soft);
+      color: var(--app-accent);
     }
 
     @media (max-width: 600px) {

@@ -141,8 +141,8 @@ import { DeviceService, Device } from '../../../core/services/device.service';
     .image-preview {
       width: 100%;
       height: 150px;
-      border: 2px dashed #ccc;
-      border-radius: 8px;
+      border: 2px dashed var(--app-border);
+      border-radius: 3px;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -152,20 +152,20 @@ import { DeviceService, Device } from '../../../core/services/device.service';
     }
 
     .image-preview:hover {
-      border-color: #3f51b5;
+      border-color: var(--app-accent);
     }
 
     .image-preview img {
       width: 100%;
       height: 100%;
-      object-fit: contain;
+      object-fit: cover;
     }
 
     .upload-placeholder {
       display: flex;
       flex-direction: column;
       align-items: center;
-      color: rgba(0,0,0,0.38);
+      color: var(--app-text-muted);
     }
 
     .upload-placeholder mat-icon {

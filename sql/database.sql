@@ -1,5 +1,5 @@
 -- ============================================
--- 測試機借用系統 - 資料庫初始化腳本 (QR Code 版本)
+-- 借機機 - 資料庫初始化腳本 (QR Code 版本)
 -- ============================================
 -- 使用方式：
 -- 1. 登入 Supabase Dashboard
@@ -285,15 +285,15 @@ BEGIN
         RETURN json_build_object('success', false, 'error', '設備目前不可借用');
     END IF;
 
-    -- 建立借用記錄
-    INSERT INTO public.borrows (device_id, borrower_name, borrower_email, purpose, status)
-    VALUES (p_device_id, TRIM(p_borrower_name), NULLIF(TRIM(p_borrower_email), ''), p_purpose, 'active')
-    RETURNING id INTO v_borrow_id;
-
     -- 更新設備狀態
     UPDATE public.devices
     SET status = 'borrowed'
     WHERE id = p_device_id;
+
+    -- 建立借用記錄
+    INSERT INTO public.borrows (device_id, borrower_name, borrower_email, purpose, status)
+    VALUES (p_device_id, TRIM(p_borrower_name), NULLIF(TRIM(p_borrower_email), ''), p_purpose, 'active')
+    RETURNING id INTO v_borrow_id;
 
     RETURN json_build_object(
         'success', true,
@@ -329,15 +329,15 @@ BEGIN
         RETURN json_build_object('success', false, 'error', '此設備已歸還');
     END IF;
 
-    -- 更新借用記錄
-    UPDATE public.borrows
-    SET status = 'returned', returned_at = NOW()
-    WHERE id = p_borrow_id;
-
     -- 更新設備狀態
     UPDATE public.devices
     SET status = 'available'
     WHERE id = v_device_id;
+
+    -- 更新借用記錄
+    UPDATE public.borrows
+    SET status = 'returned', returned_at = NOW()
+    WHERE id = p_borrow_id;
 
     RETURN json_build_object(
         'success', true,

@@ -182,7 +182,7 @@ interface TelegramConfig {
     }
 
     .help-card {
-      background: #fafafa;
+      background: var(--app-surface);
     }
 
     .help-card ol {
@@ -195,9 +195,9 @@ interface TelegramConfig {
     }
 
     .help-card code {
-      background: #e0e0e0;
+      background: var(--app-surface-elev);
       padding: 2px 6px;
-      border-radius: 4px;
+      border-radius: 3px;
       font-family: monospace;
     }
 
@@ -207,7 +207,7 @@ interface TelegramConfig {
     }
 
     .help-card a {
-      color: #3f51b5;
+      color: var(--app-accent);
     }
   `]
 })

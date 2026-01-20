@@ -1,11 +1,11 @@
 @use '@angular/material' as mat;
 
-// 定義主題
-$primary-palette: mat.define-palette(mat.$indigo-palette);
-$accent-palette: mat.define-palette(mat.$pink-palette, A200, A100, A400);
+// 定義主題（Adobe CC 風格中性深灰）
+$primary-palette: mat.define-palette(mat.$grey-palette, 900, 700, 800);
+$accent-palette: mat.define-palette(mat.$grey-palette, 700, 500, 800);
 $warn-palette: mat.define-palette(mat.$red-palette);
 
-$theme: mat.define-light-theme((
+$theme: mat.define-dark-theme((
   color: (
     primary: $primary-palette,
     accent: $accent-palette,
@@ -24,6 +24,25 @@ $theme: mat.define-light-theme((
 // 引入字體
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=Roboto:wght@400;500;700&display=swap');
 
+:root {
+  --app-bg: #1f2124;
+  --app-surface: #2a2c30;
+  --app-surface-elev: #32353a;
+  --app-border: #3b3e44;
+  --app-text: #e3e5e8;
+  --app-text-muted: #a7abb1;
+  --app-accent: #d3d6db;
+  --app-accent-soft: #3a3d42;
+  --app-info: #c8ccd2;
+  --app-info-bg: #2b2e33;
+  --app-success: #cfd2d6;
+  --app-success-bg: #2d3035;
+  --app-warning: #b9bdc3;
+  --app-warning-bg: #2f3237;
+  --app-danger: #a7acb2;
+  --app-danger-bg: #32353b;
+}
+
 // 全域樣式
 * {
   box-sizing: border-box;
@@ -37,33 +56,107 @@ html, body {
 
 body {
   font-family: 'Roboto', 'Noto Sans TC', sans-serif;
-  background-color: #fafafa;
+  background-color: var(--app-bg);
+  color: var(--app-text);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
+.mat-mdc-card,
+.mat-mdc-menu-panel,
+.mat-mdc-select-panel {
+  background-color: var(--app-surface);
+  color: var(--app-text);
+  border-radius: 3px;
+}
+
+.mat-mdc-dialog-container .mdc-dialog__surface {
+  background-color: var(--app-surface);
+  color: var(--app-text);
+  border-radius: 3px;
+}
+
+.mat-mdc-table {
+  background-color: var(--app-surface);
+}
+
+.mat-mdc-form-field .mdc-text-field--outlined {
+  background-color: var(--app-surface-elev);
+}
+
+.mat-mdc-form-field .mdc-text-field__input {
+  color: var(--app-text);
+}
+
+.mat-mdc-form-field .mdc-text-field--focused .mdc-text-field__input {
+  color: var(--app-text) !important;
+  caret-color: var(--app-text);
+}
+
+.mat-mdc-form-field input:-webkit-autofill,
+.mat-mdc-form-field input:-webkit-autofill:focus,
+.mat-mdc-form-field textarea:-webkit-autofill,
+.mat-mdc-form-field textarea:-webkit-autofill:focus {
+  -webkit-text-fill-color: var(--app-text) !important;
+  box-shadow: 0 0 0px 1000px var(--app-surface-elev) inset;
+  transition: background-color 5000s ease-in-out 0s;
+}
+
+.mat-mdc-form-field .mdc-floating-label,
+.mat-mdc-form-field .mat-mdc-form-field-hint {
+  color: var(--app-text-muted);
+}
+
+.mat-mdc-form-field .mdc-notched-outline__leading,
+.mat-mdc-form-field .mdc-notched-outline__notch,
+.mat-mdc-form-field .mdc-notched-outline__trailing {
+  border-color: var(--app-border);
+}
+
+.mat-mdc-form-field .mdc-text-field--focused .mdc-notched-outline__leading,
+.mat-mdc-form-field .mdc-text-field--focused .mdc-notched-outline__notch,
+.mat-mdc-form-field .mdc-text-field--focused .mdc-notched-outline__trailing {
+  border-color: var(--app-border);
+}
+
+.mat-mdc-form-field.mat-focused .mdc-notched-outline__leading,
+.mat-mdc-form-field.mat-focused .mdc-notched-outline__notch,
+.mat-mdc-form-field.mat-focused .mdc-notched-outline__trailing {
+  border-color: var(--app-text-muted) !important;
+}
+
+.mat-mdc-form-field.mat-focused .mdc-floating-label {
+  color: var(--app-text-muted) !important;
+}
+
+.mat-mdc-form-field {
+  --mdc-outlined-text-field-focus-outline-color: var(--app-text-muted);
+  --mdc-outlined-text-field-outline-color: var(--app-border);
+  --mdc-outlined-text-field-hover-outline-color: var(--app-border);
+}
+
 // 狀態色
 .status-available {
-  color: #4caf50;
+  color: var(--app-success);
 }
 
 .status-borrowed {
-  color: #f44336;
+  color: var(--app-danger);
 }
 
 .status-maintenance {
-  color: #ff9800;
+  color: var(--app-warning);
 }
 
 // Snackbar 樣式
 .error-snackbar {
-  --mdc-snackbar-container-color: #f44336;
+  --mdc-snackbar-container-color: #3a3d42;
   --mat-snack-bar-button-color: #fff;
 }
 
 // 連結樣式
 a {
-  color: #3f51b5;
+  color: var(--app-accent);
   text-decoration: none;
 
   &:hover {

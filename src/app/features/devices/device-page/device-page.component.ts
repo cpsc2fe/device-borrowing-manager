@@ -1,7 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -13,6 +13,7 @@ import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { DeviceService, DeviceWithBorrower } from '../../../core/services/device.service';
 import { BorrowService } from '../../../core/services/borrow.service';
 import { ConfirmDialogComponent } from '../../../shared/components/confirm-dialog/confirm-dialog.component';
+import { ImageLightboxComponent } from '../../../shared/components/image-lightbox/image-lightbox.component';
 
 @Component({
   selector: 'app-device-page',
@@ -27,7 +28,8 @@ import { ConfirmDialogComponent } from '../../../shared/components/confirm-dialo
     MatInputModule,
     MatProgressSpinnerModule,
     MatSnackBarModule,
-    MatDialogModule
+    MatDialogModule,
+    RouterModule
   ],
   template: `
     <div class="device-page">
@@ -44,9 +46,16 @@ import { ConfirmDialogComponent } from '../../../shared/components/confirm-dialo
       </div>
 
       <!-- Device Info -->
-      <mat-card class="device-card" *ngIf="!loading && device">
+      <div class="device-content" *ngIf="!loading && device">
+        <a class="back-link" routerLink="/">
+          <mat-icon>arrow_back</mat-icon>
+          返回設備列表
+        </a>
+        <mat-card class="device-card">
         <!-- Device Image -->
-        <div class="device-image">
+        <div class="device-image"
+             [class.clickable]="device.image_url"
+             (click)="openImageLightbox(device)">
           <img *ngIf="device.image_url" [src]="device.image_url" [alt]="device.name">
           <div class="no-image" *ngIf="!device.image_url">
             <mat-icon>smartphone</mat-icon>
@@ -141,16 +150,25 @@ import { ConfirmDialogComponent } from '../../../shared/components/confirm-dialo
           </div>
         </mat-card-actions>
       </mat-card>
+      </div>
     </div>
   `,
   styles: [`
     .device-page {
       min-height: 100vh;
-      background: #f5f5f5;
+      background: var(--app-bg);
       padding: 16px;
       display: flex;
       justify-content: center;
       align-items: flex-start;
+    }
+
+    .device-content {
+      width: 100%;
+      max-width: 400px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
     }
 
     .loading, .error-state {
@@ -159,41 +177,70 @@ import { ConfirmDialogComponent } from '../../../shared/components/confirm-dialo
       align-items: center;
       gap: 16px;
       padding: 48px;
-      color: rgba(0,0,0,0.54);
+      color: var(--app-text-muted);
     }
 
     .error-state mat-icon {
       font-size: 64px;
       width: 64px;
       height: 64px;
-      color: #f44336;
+      color: var(--app-danger);
     }
 
     .device-card {
-      max-width: 400px;
       width: 100%;
-      margin-top: 16px;
+      margin-top: 0;
+      border-radius: 3px;
+      overflow: hidden;
+    }
+
+    .back-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 0;
+      color: var(--app-text-muted);
+      text-decoration: none;
+    }
+
+    .back-link:hover {
+      color: var(--app-text);
+    }
+
+    .back-link mat-icon {
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
     }
 
     .device-image {
       width: 100%;
       height: 200px;
-      background: #e0e0e0;
+      background: var(--app-surface-elev);
       display: flex;
       align-items: center;
       justify-content: center;
-      border-radius: 4px 4px 0 0;
+      border-radius: 3px 3px 0 0;
       overflow: hidden;
+    }
+
+    .device-image.clickable {
+      cursor: zoom-in;
+    }
+
+    .device-image:not(.clickable) {
+      cursor: default;
     }
 
     .device-image img {
       width: 100%;
       height: 100%;
-      object-fit: contain;
+      object-fit: cover;
+      object-position: top center;
     }
 
     .device-image .no-image {
-      color: rgba(0,0,0,0.3);
+      color: var(--app-text-muted);
     }
 
     .device-image .no-image mat-icon {
@@ -210,23 +257,23 @@ import { ConfirmDialogComponent } from '../../../shared/components/confirm-dialo
 
     .device-detail {
       font-size: 16px;
-      color: rgba(0,0,0,0.7);
+      color: var(--app-text);
       margin: 0 0 4px;
     }
 
     .device-os {
       font-size: 14px;
-      color: rgba(0,0,0,0.54);
+      color: var(--app-text-muted);
       margin: 0 0 8px;
     }
 
     .device-notes {
       font-size: 14px;
-      color: rgba(0,0,0,0.54);
+      color: var(--app-text-muted);
       margin: 8px 0;
       padding: 8px;
-      background: #f5f5f5;
-      border-radius: 4px;
+      background: var(--app-surface);
+      border-radius: 3px;
     }
 
     .status-section {
@@ -236,31 +283,31 @@ import { ConfirmDialogComponent } from '../../../shared/components/confirm-dialo
     .status-badge {
       display: inline-block;
       padding: 6px 16px;
-      border-radius: 20px;
+      border-radius: 3px;
       font-size: 14px;
       font-weight: 500;
     }
 
     .status-badge.available {
-      background: #e8f5e9;
-      color: #2e7d32;
+      background: var(--app-success-bg);
+      color: var(--app-success);
     }
 
     .status-badge.borrowed {
-      background: #fff3e0;
-      color: #ef6c00;
+      background: var(--app-danger-bg);
+      color: var(--app-danger);
     }
 
     .status-badge.maintenance {
-      background: #fce4ec;
-      color: #c62828;
+      background: var(--app-warning-bg);
+      color: var(--app-warning);
     }
 
     .borrower-info {
       margin-top: 12px;
       padding: 12px;
-      background: #fff3e0;
-      border-radius: 8px;
+      background: var(--app-danger-bg);
+      border-radius: 3px;
     }
 
     .borrower-info p {
@@ -269,7 +316,7 @@ import { ConfirmDialogComponent } from '../../../shared/components/confirm-dialo
     }
 
     .borrower-info .borrow-time {
-      color: rgba(0,0,0,0.54);
+      color: var(--app-text-muted);
       margin-top: 4px;
     }
 
@@ -298,7 +345,7 @@ import { ConfirmDialogComponent } from '../../../shared/components/confirm-dialo
       align-items: center;
       gap: 8px;
       padding: 24px;
-      color: rgba(0,0,0,0.54);
+      color: var(--app-text-muted);
     }
 
     .maintenance-notice mat-icon {
@@ -323,7 +370,8 @@ export class DevicePageComponent implements OnInit {
     private deviceService: DeviceService,
     private borrowService: BorrowService,
     private snackBar: MatSnackBar,
-    private dialog: MatDialog
+    private dialog: MatDialog,
+    private router: Router
   ) {}
 
   ngOnInit() {
@@ -404,7 +452,7 @@ export class DevicePageComponent implements OnInit {
           if (result.success) {
             this.snackBar.open('歸還成功！', '關閉', { duration: 3000 });
             // Telegram 通知由資料庫 trigger 自動處理
-            await this.loadDevice(this.device.id);
+            await this.router.navigate(['/']);
           } else {
             this.snackBar.open(result.error || '歸還失敗', '關閉', { duration: 5000 });
           }
@@ -414,6 +462,16 @@ export class DevicePageComponent implements OnInit {
         } finally {
           this.processing = false;
         }
+      }
+    });
+  }
+
+  openImageLightbox(device: DeviceWithBorrower) {
+    if (!device.image_url) return;
+    this.dialog.open(ImageLightboxComponent, {
+      data: {
+        imageUrl: device.image_url,
+        title: device.name
       }
     });
   }

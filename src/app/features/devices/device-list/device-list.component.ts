@@ -13,6 +13,7 @@ import { BorrowService } from '../../../core/services/borrow.service';
 import { QrDialogComponent } from '../../../shared/components/qr-dialog/qr-dialog.component';
 import { BorrowDialogComponent, BorrowDialogResult } from '../../../shared/components/borrow-dialog/borrow-dialog.component';
 import { ConfirmDialogComponent } from '../../../shared/components/confirm-dialog/confirm-dialog.component';
+import { ImageLightboxComponent } from '../../../shared/components/image-lightbox/image-lightbox.component';
 
 interface DeviceWithProcessing extends DeviceWithBorrower {
   processing?: boolean;
@@ -66,7 +67,9 @@ interface DeviceWithProcessing extends DeviceWithBorrower {
       <div class="device-grid" *ngIf="!loading">
         <mat-card class="device-card" *ngFor="let device of devices">
           <!-- 設備圖片 -->
-          <div class="device-image" [routerLink]="['/device', device.id]">
+          <div class="device-image"
+               [class.clickable]="device.image_url"
+               (click)="openImageLightbox(device)">
             <img *ngIf="device.image_url"
                  [src]="device.image_url"
                  [alt]="device.name"
@@ -85,7 +88,11 @@ interface DeviceWithProcessing extends DeviceWithBorrower {
 
           <!-- 設備資訊 -->
           <mat-card-content>
-            <h3 class="device-name">{{ device.name }}</h3>
+            <h3 class="device-name">
+              <a class="device-name-link" [routerLink]="['/device', device.id]">
+                {{ device.name }}
+              </a>
+            </h3>
             <p class="device-info">{{ device.brand }} · {{ device.os }} {{ device.os_version }}</p>
 
             <!-- 借用者資訊 -->
@@ -146,10 +153,11 @@ interface DeviceWithProcessing extends DeviceWithBorrower {
       align-items: center;
       gap: 8px;
       padding: 12px 16px;
-      background: #e3f2fd;
-      border-radius: 8px;
+      background: transparent;
+      border: 1px solid rgba(227, 229, 232, 0.6);
+      border-radius: 3px;
       margin-bottom: 16px;
-      color: #1565c0;
+      color: rgba(227, 229, 232, 0.85);
     }
 
     .info-banner mat-icon {
@@ -166,30 +174,30 @@ interface DeviceWithProcessing extends DeviceWithBorrower {
 
     .stat-card {
       flex: 1;
-      background: white;
-      border-radius: 8px;
+      background: var(--app-surface);
+      border-radius: 3px;
       padding: 16px;
       text-align: center;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.35);
     }
 
     .stat-number {
       font-size: 32px;
       font-weight: 500;
-      color: rgba(0,0,0,0.87);
+      color: var(--app-text);
     }
 
     .stat-label {
       font-size: 14px;
-      color: rgba(0,0,0,0.54);
+      color: var(--app-text-muted);
     }
 
     .stat-card.available .stat-number {
-      color: #4caf50;
+      color: var(--app-success);
     }
 
     .stat-card.borrowed .stat-number {
-      color: #f44336;
+      color: var(--app-danger);
     }
 
     .loading {
@@ -198,7 +206,7 @@ interface DeviceWithProcessing extends DeviceWithBorrower {
       align-items: center;
       gap: 16px;
       padding: 48px;
-      color: rgba(0,0,0,0.54);
+      color: var(--app-text-muted);
     }
 
     .device-grid {
@@ -210,12 +218,15 @@ interface DeviceWithProcessing extends DeviceWithBorrower {
     .device-card {
       display: flex;
       flex-direction: column;
+      border-radius: 3px;
+      overflow: hidden;
+      background: var(--app-surface);
     }
 
     .device-image {
       width: 100%;
       height: 180px;
-      background: #f5f5f5;
+      background: var(--app-surface-elev);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -227,14 +238,23 @@ interface DeviceWithProcessing extends DeviceWithBorrower {
       opacity: 0.9;
     }
 
+    .device-image.clickable {
+      cursor: zoom-in;
+    }
+
+    .device-image:not(.clickable) {
+      cursor: default;
+    }
+
     .device-image img {
       width: 100%;
       height: 100%;
-      object-fit: contain;
+      object-fit: cover;
+      object-position: top center;
     }
 
     .no-image {
-      color: rgba(0,0,0,0.26);
+      color: var(--app-text-muted);
     }
 
     .no-image mat-icon {
@@ -246,7 +266,7 @@ interface DeviceWithProcessing extends DeviceWithBorrower {
     .status-badge {
       display: inline-block;
       padding: 4px 12px;
-      border-radius: 16px;
+      border-radius: 3px;
       font-size: 12px;
       font-weight: 500;
       margin: 12px 16px 0;
@@ -254,18 +274,18 @@ interface DeviceWithProcessing extends DeviceWithBorrower {
     }
 
     .status-badge.available {
-      background: #e8f5e9;
-      color: #2e7d32;
+      background: var(--app-success-bg);
+      color: var(--app-success);
     }
 
     .status-badge.borrowed {
-      background: #ffebee;
-      color: #c62828;
+      background: var(--app-danger-bg);
+      color: var(--app-danger);
     }
 
     .status-badge.maintenance {
-      background: #fff3e0;
-      color: #ef6c00;
+      background: var(--app-warning-bg);
+      color: var(--app-warning);
     }
 
     mat-card-content {
@@ -279,10 +299,19 @@ interface DeviceWithProcessing extends DeviceWithBorrower {
       font-weight: 500;
     }
 
+    .device-name-link {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    .device-name-link:hover {
+      text-decoration: underline;
+    }
+
     .device-info {
       margin: 0;
       font-size: 14px;
-      color: rgba(0,0,0,0.54);
+      color: var(--app-text-muted);
     }
 
     .borrower-info {
@@ -291,7 +320,7 @@ interface DeviceWithProcessing extends DeviceWithBorrower {
       gap: 4px;
       margin-top: 8px;
       font-size: 12px;
-      color: rgba(0,0,0,0.54);
+      color: var(--app-text-muted);
     }
 
     .borrower-info mat-icon {
@@ -317,7 +346,7 @@ interface DeviceWithProcessing extends DeviceWithBorrower {
     .empty-state {
       text-align: center;
       padding: 48px;
-      color: rgba(0,0,0,0.54);
+      color: var(--app-text-muted);
     }
 
     .empty-state mat-icon {
@@ -377,6 +406,16 @@ export class DeviceListComponent implements OnInit {
       data: {
         deviceId: device.id,
         deviceName: device.name
+      }
+    });
+  }
+
+  openImageLightbox(device: DeviceWithBorrower) {
+    if (!device.image_url) return;
+    this.dialog.open(ImageLightboxComponent, {
+      data: {
+        imageUrl: device.image_url,
+        title: device.name
       }
     });
   }

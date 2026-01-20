@@ -31,10 +31,10 @@ import { SupabaseService } from '../../../core/services/supabase.service';
       <mat-card class="login-card">
         <mat-card-header>
           <mat-card-title>
-            <span class="logo">📱</span>
+            <img class="logo" src="assets/images/favicon.png" alt="借機機">
             管理員登入
           </mat-card-title>
-          <p class="subtitle">測試機借用系統</p>
+          <p class="subtitle">借機機</p>
         </mat-card-header>
 
         <mat-card-content>
@@ -87,7 +87,7 @@ import { SupabaseService } from '../../../core/services/supabase.service';
       display: flex;
       align-items: center;
       justify-content: center;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      background: radial-gradient(circle at top, #2e3136 0%, #1f2124 55%, #17191c 100%);
       padding: 16px;
     }
 
@@ -112,13 +112,14 @@ import { SupabaseService } from '../../../core/services/supabase.service';
     }
 
     .logo {
-      font-size: 32px;
+      width: 36px;
+      height: 36px;
     }
 
     .subtitle {
       margin: 8px 0 0;
       font-size: 14px;
-      color: rgba(0,0,0,0.54);
+      color: var(--app-text-muted);
     }
 
     .full-width {
@@ -127,6 +128,30 @@ import { SupabaseService } from '../../../core/services/supabase.service';
 
     mat-form-field {
       margin-bottom: 8px;
+    }
+
+    :host ::ng-deep .login-card .mdc-text-field--outlined {
+      background-color: var(--app-surface-elev);
+    }
+
+    :host ::ng-deep .login-card .mdc-text-field__input {
+      color: var(--app-text) !important;
+      caret-color: var(--app-text);
+    }
+
+    :host ::ng-deep .login-card .mdc-text-field__input:focus {
+      color: var(--app-text) !important;
+    }
+
+    :host ::ng-deep .login-card input:-webkit-autofill {
+      -webkit-text-fill-color: var(--app-text);
+      box-shadow: 0 0 0px 1000px var(--app-surface-elev) inset;
+      transition: background-color 5000s ease-in-out 0s;
+    }
+
+    :host ::ng-deep .login-card input:-webkit-autofill:focus {
+      -webkit-text-fill-color: var(--app-text);
+      box-shadow: 0 0 0px 1000px var(--app-surface-elev) inset;
     }
 
     .login-btn {
@@ -147,7 +172,7 @@ import { SupabaseService } from '../../../core/services/supabase.service';
       display: inline-flex;
       align-items: center;
       gap: 4px;
-      color: #3f51b5;
+      color: var(--app-accent);
       text-decoration: none;
     }
 

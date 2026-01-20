@@ -23,7 +23,7 @@
 
 ### Step 2：建立新 Bot
 1. 發送指令：`/newbot`
-2. BotFather 會問你 Bot 的名稱，輸入：`測試機借用通知` （或你喜歡的名稱）
+2. BotFather 會問你 Bot 的名稱，輸入：`借機機通知` （或你喜歡的名稱）
 3. BotFather 會問你 Bot 的 username，輸入：`DeviceBorrowNotifyBot` （必須以 Bot 結尾，且需唯一）
 
 ### Step 3：取得 Bot Token

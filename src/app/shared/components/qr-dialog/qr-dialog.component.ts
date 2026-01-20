@@ -49,13 +49,13 @@ export interface QrDialogData {
       display: flex;
       justify-content: center;
       padding: 16px;
-      background: white;
-      border-radius: 8px;
+      background: var(--app-surface-elev);
+      border-radius: 3px;
     }
 
     .hint {
       text-align: center;
-      color: rgba(0,0,0,0.54);
+      color: var(--app-text-muted);
       font-size: 14px;
       margin: 16px 0 8px;
     }
@@ -63,7 +63,7 @@ export interface QrDialogData {
     .url {
       text-align: center;
       font-size: 12px;
-      color: rgba(0,0,0,0.38);
+      color: var(--app-text-muted);
       word-break: break-all;
       margin: 0;
     }
