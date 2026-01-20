@@ -9,7 +9,14 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { DeviceService, DeviceWithBorrower } from '../../../core/services/device.service';
+import { BorrowService } from '../../../core/services/borrow.service';
 import { QrDialogComponent } from '../../../shared/components/qr-dialog/qr-dialog.component';
+import { BorrowDialogComponent, BorrowDialogResult } from '../../../shared/components/borrow-dialog/borrow-dialog.component';
+import { ConfirmDialogComponent } from '../../../shared/components/confirm-dialog/confirm-dialog.component';
+
+interface DeviceWithProcessing extends DeviceWithBorrower {
+  processing?: boolean;
+}
 
 @Component({
   selector: 'app-device-list',
@@ -91,16 +98,31 @@ import { QrDialogComponent } from '../../../shared/components/qr-dialog/qr-dialo
           <!-- 操作按鈕 -->
           <mat-card-actions>
             <button mat-stroked-button
-                    color="primary"
                     (click)="showQrCode(device)">
               <mat-icon>qr_code</mat-icon>
-              QR Code
+              QR
             </button>
             <button mat-flat-button
                     color="primary"
-                    [routerLink]="['/device', device.id]">
-              <mat-icon>open_in_new</mat-icon>
-              開啟
+                    *ngIf="device.status === 'available'"
+                    [disabled]="device.processing"
+                    (click)="borrowDevice(device)">
+              <mat-icon>download</mat-icon>
+              借用
+            </button>
+            <button mat-flat-button
+                    color="warn"
+                    *ngIf="device.status === 'borrowed'"
+                    [disabled]="device.processing"
+                    (click)="returnDevice(device)">
+              <mat-icon>upload</mat-icon>
+              歸還
+            </button>
+            <button mat-stroked-button
+                    color="warn"
+                    *ngIf="device.status === 'maintenance'"
+                    disabled>
+              維修中
             </button>
           </mat-card-actions>
         </mat-card>
@@ -321,12 +343,13 @@ import { QrDialogComponent } from '../../../shared/components/qr-dialog/qr-dialo
   `]
 })
 export class DeviceListComponent implements OnInit {
-  devices: DeviceWithBorrower[] = [];
+  devices: DeviceWithProcessing[] = [];
   stats = { total: 0, available: 0, borrowed: 0, maintenance: 0 };
   loading = true;
 
   constructor(
     private deviceService: DeviceService,
+    private borrowService: BorrowService,
     private dialog: MatDialog,
     private snackBar: MatSnackBar
   ) {}
@@ -360,5 +383,69 @@ export class DeviceListComponent implements OnInit {
 
   onImageError(event: Event) {
     (event.target as HTMLImageElement).style.display = 'none';
+  }
+
+  borrowDevice(device: DeviceWithProcessing) {
+    const dialogRef = this.dialog.open(BorrowDialogComponent, {
+      width: '350px',
+      data: { deviceName: device.name }
+    });
+
+    dialogRef.afterClosed().subscribe(async (result: BorrowDialogResult | undefined) => {
+      if (result) {
+        device.processing = true;
+        try {
+          const response = await this.borrowService.borrowDevice(
+            device.id,
+            result.borrowerName,
+            result.borrowerEmail,
+            result.purpose
+          );
+          if (response.success) {
+            this.snackBar.open('借用成功！', '關閉', { duration: 3000 });
+            await this.loadDevices();
+          } else {
+            this.snackBar.open(response.error || '借用失敗', '關閉', { duration: 5000 });
+          }
+        } catch (error: any) {
+          console.error('Borrow error:', error);
+          this.snackBar.open(error.message || '借用失敗', '關閉', { duration: 5000 });
+        } finally {
+          device.processing = false;
+        }
+      }
+    });
+  }
+
+  returnDevice(device: DeviceWithProcessing) {
+    const dialogRef = this.dialog.open(ConfirmDialogComponent, {
+      width: '320px',
+      data: {
+        title: '確認歸還',
+        message: `確定要歸還「${device.name}」嗎？`,
+        confirmText: '確認歸還',
+        cancelText: '取消'
+      }
+    });
+
+    dialogRef.afterClosed().subscribe(async (confirmed: boolean) => {
+      if (confirmed && device.active_borrow_id) {
+        device.processing = true;
+        try {
+          const response = await this.borrowService.returnDevice(device.active_borrow_id);
+          if (response.success) {
+            this.snackBar.open('歸還成功！', '關閉', { duration: 3000 });
+            await this.loadDevices();
+          } else {
+            this.snackBar.open(response.error || '歸還失敗', '關閉', { duration: 5000 });
+          }
+        } catch (error: any) {
+          console.error('Return error:', error);
+          this.snackBar.open(error.message || '歸還失敗', '關閉', { duration: 5000 });
+        } finally {
+          device.processing = false;
+        }
+      }
+    });
   }
 }
