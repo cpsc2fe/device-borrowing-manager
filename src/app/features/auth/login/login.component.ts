@@ -1,13 +1,13 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
+import { Router, RouterModule } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
-import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatIconModule } from '@angular/material/icon';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { SupabaseService } from '../../../core/services/supabase.service';
 
@@ -17,12 +17,13 @@ import { SupabaseService } from '../../../core/services/supabase.service';
   imports: [
     CommonModule,
     FormsModule,
+    RouterModule,
     MatCardModule,
     MatFormFieldModule,
     MatInputModule,
     MatButtonModule,
-    MatCheckboxModule,
     MatProgressSpinnerModule,
+    MatIconModule,
     MatSnackBarModule
   ],
   template: `
@@ -31,8 +32,9 @@ import { SupabaseService } from '../../../core/services/supabase.service';
         <mat-card-header>
           <mat-card-title>
             <span class="logo">📱</span>
-            測試機借用系統
+            管理員登入
           </mat-card-title>
+          <p class="subtitle">測試機借用系統</p>
         </mat-card-header>
 
         <mat-card-content>
@@ -51,19 +53,13 @@ import { SupabaseService } from '../../../core/services/supabase.service';
             <mat-form-field appearance="outline" class="full-width">
               <mat-label>密碼</mat-label>
               <input matInput
-                     [type]="showPassword ? 'text' : 'password'"
+                     type="password"
                      [(ngModel)]="password"
                      name="password"
                      required
                      minlength="6"
                      [disabled]="loading">
             </mat-form-field>
-
-            <div class="options">
-              <mat-checkbox [(ngModel)]="rememberMe" name="rememberMe">
-                記住我的登入狀態
-              </mat-checkbox>
-            </div>
 
             <button mat-raised-button
                     color="primary"
@@ -75,8 +71,11 @@ import { SupabaseService } from '../../../core/services/supabase.service';
             </button>
           </form>
 
-          <div class="links">
-            <a (click)="forgotPassword()" class="link">忘記密碼？</a>
+          <div class="back-link">
+            <a routerLink="/">
+              <mat-icon>arrow_back</mat-icon>
+              返回設備列表
+            </a>
           </div>
         </mat-card-content>
       </mat-card>
@@ -99,7 +98,9 @@ import { SupabaseService } from '../../../core/services/supabase.service';
     }
 
     mat-card-header {
-      justify-content: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
       margin-bottom: 24px;
     }
 
@@ -114,16 +115,18 @@ import { SupabaseService } from '../../../core/services/supabase.service';
       font-size: 32px;
     }
 
+    .subtitle {
+      margin: 8px 0 0;
+      font-size: 14px;
+      color: rgba(0,0,0,0.54);
+    }
+
     .full-width {
       width: 100%;
     }
 
     mat-form-field {
       margin-bottom: 8px;
-    }
-
-    .options {
-      margin-bottom: 16px;
     }
 
     .login-btn {
@@ -136,27 +139,32 @@ import { SupabaseService } from '../../../core/services/supabase.service';
       display: inline-block;
     }
 
-    .links {
+    .back-link {
       text-align: center;
     }
 
-    .link {
+    .back-link a {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
       color: #3f51b5;
-      cursor: pointer;
       text-decoration: none;
     }
 
-    .link:hover {
+    .back-link a:hover {
       text-decoration: underline;
     }
 
+    .back-link mat-icon {
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
+    }
   `]
 })
 export class LoginComponent {
   email = '';
   password = '';
-  rememberMe = false;
-  showPassword = false;
   loading = false;
 
   constructor(
@@ -171,30 +179,24 @@ export class LoginComponent {
     this.loading = true;
     try {
       await this.supabase.signIn(this.email, this.password);
+
+      // Check if admin
+      const isAdmin = await this.supabase.isAdmin();
+      if (!isAdmin) {
+        await this.supabase.signOut();
+        this.snackBar.open('此帳號沒有管理員權限', '關閉', { duration: 5000 });
+        return;
+      }
+
       this.snackBar.open('登入成功！', '關閉', { duration: 3000 });
-      this.router.navigate(['/']);
+      this.router.navigate(['/admin/devices']);
     } catch (error: any) {
       console.error('Login error:', error);
       this.snackBar.open(error.message || '登入失敗，請檢查帳號密碼', '關閉', {
-        duration: 5000,
-        panelClass: ['error-snackbar']
+        duration: 5000
       });
     } finally {
       this.loading = false;
-    }
-  }
-
-  async forgotPassword() {
-    if (!this.email) {
-      this.snackBar.open('請先輸入 Email', '關閉', { duration: 3000 });
-      return;
-    }
-
-    try {
-      await this.supabase.resetPassword(this.email);
-      this.snackBar.open('重設密碼信件已寄出，請查收', '關閉', { duration: 5000 });
-    } catch (error: any) {
-      this.snackBar.open(error.message || '寄送失敗', '關閉', { duration: 5000 });
     }
   }
 }

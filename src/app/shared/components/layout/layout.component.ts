@@ -1,8 +1,8 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
 import { MatToolbarModule } from '@angular/material/toolbar';
-import { MatSidenavModule } from '@angular/material/sidenav';
+import { MatSidenav, MatSidenavModule } from '@angular/material/sidenav';
 import { MatListModule } from '@angular/material/list';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
@@ -24,11 +24,12 @@ import { SupabaseService } from '../../../core/services/supabase.service';
   ],
   template: `
     <mat-sidenav-container class="sidenav-container">
-      <!-- 側邊欄（桌面版） -->
+      <!-- 側邊欄（桌面版，僅管理員） -->
       <mat-sidenav #sidenav
                    [mode]="isMobile ? 'over' : 'side'"
-                   [opened]="!isMobile"
-                   class="sidenav">
+                   [opened]="!isMobile && isAdmin"
+                   class="sidenav"
+                   *ngIf="isAdmin">
         <div class="sidenav-header">
           <span class="logo">📱</span>
           <span class="title">測試機借用系統</span>
@@ -39,22 +40,14 @@ import { SupabaseService } from '../../../core/services/supabase.service';
             <mat-icon matListItemIcon>devices</mat-icon>
             <span matListItemTitle>設備列表</span>
           </a>
-          <a mat-list-item routerLink="/my-borrows" routerLinkActive="active">
-            <mat-icon matListItemIcon>assignment</mat-icon>
-            <span matListItemTitle>我的借用</span>
-          </a>
         </mat-nav-list>
 
-        <mat-nav-list *ngIf="isAdmin">
+        <mat-nav-list>
           <div class="nav-divider"></div>
           <div class="nav-section-title">管理功能</div>
           <a mat-list-item routerLink="/admin/devices" routerLinkActive="active">
             <mat-icon matListItemIcon>phone_android</mat-icon>
             <span matListItemTitle>設備管理</span>
-          </a>
-          <a mat-list-item routerLink="/admin/users" routerLinkActive="active">
-            <mat-icon matListItemIcon>people</mat-icon>
-            <span matListItemTitle>使用者管理</span>
           </a>
           <a mat-list-item routerLink="/admin/settings" routerLinkActive="active">
             <mat-icon matListItemIcon>settings</mat-icon>
@@ -75,45 +68,56 @@ import { SupabaseService } from '../../../core/services/supabase.service';
       <mat-sidenav-content class="content">
         <!-- 頂部工具列 -->
         <mat-toolbar color="primary" class="toolbar">
-          <button mat-icon-button (click)="sidenav.toggle()" *ngIf="isMobile">
+          <button mat-icon-button (click)="toggleSidenav()" *ngIf="isMobile && isAdmin">
             <mat-icon>menu</mat-icon>
           </button>
-          <span class="toolbar-title">{{ pageTitle }}</span>
+          <span class="logo-small" *ngIf="!isAdmin">📱</span>
+          <span class="toolbar-title">{{ isAdmin ? pageTitle : '測試機借用系統' }}</span>
           <span class="spacer"></span>
-          <button mat-icon-button [matMenuTriggerFor]="userMenu">
-            <mat-icon>account_circle</mat-icon>
-          </button>
-          <mat-menu #userMenu="matMenu">
-            <div class="menu-email">{{ userEmail }}</div>
-            <button mat-menu-item (click)="logout()">
-              <mat-icon>logout</mat-icon>
-              <span>登出</span>
+
+          <!-- 管理員選單 -->
+          <ng-container *ngIf="isAdmin">
+            <button mat-icon-button [matMenuTriggerFor]="userMenu">
+              <mat-icon>account_circle</mat-icon>
             </button>
-          </mat-menu>
+            <mat-menu #userMenu="matMenu">
+              <div class="menu-email">{{ userEmail }}</div>
+              <button mat-menu-item (click)="logout()">
+                <mat-icon>logout</mat-icon>
+                <span>登出</span>
+              </button>
+            </mat-menu>
+          </ng-container>
+
+          <!-- 非管理員顯示管理員登入按鈕 -->
+          <button mat-button *ngIf="!isAdmin" routerLink="/login" class="admin-login-btn">
+            <mat-icon>admin_panel_settings</mat-icon>
+            <span class="admin-login-text">管理員</span>
+          </button>
         </mat-toolbar>
 
         <!-- 頁面內容 -->
-        <main class="main-content">
+        <main class="main-content" [class.with-bottom-nav]="isMobile && isAdmin">
           <router-outlet></router-outlet>
         </main>
 
-        <!-- 底部導航（手機版） -->
-        <nav class="bottom-nav" *ngIf="isMobile">
+        <!-- 底部導航（手機版，僅管理員） -->
+        <nav class="bottom-nav" *ngIf="isMobile && isAdmin">
           <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{exact: true}">
             <mat-icon>devices</mat-icon>
             <span>設備</span>
           </a>
-          <a routerLink="/my-borrows" routerLinkActive="active">
-            <mat-icon>assignment</mat-icon>
-            <span>我的借用</span>
-          </a>
-          <a routerLink="/admin/devices" routerLinkActive="active" *ngIf="isAdmin">
-            <mat-icon>settings</mat-icon>
+          <a routerLink="/admin/devices" routerLinkActive="active">
+            <mat-icon>phone_android</mat-icon>
             <span>管理</span>
+          </a>
+          <a routerLink="/admin/settings" routerLinkActive="active">
+            <mat-icon>settings</mat-icon>
+            <span>設定</span>
           </a>
           <a [matMenuTriggerFor]="mobileUserMenu">
             <mat-icon>person</mat-icon>
-            <span>我</span>
+            <span>帳號</span>
           </a>
           <mat-menu #mobileUserMenu="matMenu">
             <div class="menu-email">{{ userEmail }}</div>
@@ -147,6 +151,11 @@ import { SupabaseService } from '../../../core/services/supabase.service';
 
     .logo {
       font-size: 24px;
+    }
+
+    .logo-small {
+      font-size: 20px;
+      margin-right: 8px;
     }
 
     .title {
@@ -201,10 +210,21 @@ import { SupabaseService } from '../../../core/services/supabase.service';
       flex: 1;
     }
 
+    .admin-login-btn {
+      color: white;
+    }
+
+    .admin-login-btn mat-icon {
+      margin-right: 4px;
+    }
+
     .main-content {
       flex: 1;
       padding: 16px;
       background: #fafafa;
+    }
+
+    .main-content.with-bottom-nav {
       padding-bottom: 80px;
     }
 
@@ -254,11 +274,13 @@ import { SupabaseService } from '../../../core/services/supabase.service';
       color: #3f51b5;
     }
 
-    @media (min-width: 768px) {
-      .main-content {
-        padding-bottom: 16px;
+    @media (max-width: 600px) {
+      .admin-login-text {
+        display: none;
       }
+    }
 
+    @media (min-width: 768px) {
       .bottom-nav {
         display: none;
       }
@@ -266,6 +288,8 @@ import { SupabaseService } from '../../../core/services/supabase.service';
   `]
 })
 export class LayoutComponent implements OnInit {
+  @ViewChild('sidenav') sidenav!: MatSidenav;
+
   isMobile = false;
   isAdmin = false;
   userEmail = '';
@@ -280,19 +304,29 @@ export class LayoutComponent implements OnInit {
   }
 
   async ngOnInit() {
-    this.supabase.user$.subscribe(user => {
+    this.supabase.user$.subscribe(async user => {
       this.userEmail = user?.email || '';
+      // Update admin status when auth state changes
+      if (user) {
+        this.isAdmin = await this.supabase.isAdmin();
+      } else {
+        this.isAdmin = false;
+      }
     });
-
-    this.isAdmin = await this.supabase.isAdmin();
   }
 
   checkScreenSize() {
     this.isMobile = window.innerWidth < 768;
   }
 
+  toggleSidenav() {
+    if (this.sidenav) {
+      this.sidenav.toggle();
+    }
+  }
+
   async logout() {
     await this.supabase.signOut();
-    this.router.navigate(['/login']);
+    this.router.navigate(['/']);
   }
 }

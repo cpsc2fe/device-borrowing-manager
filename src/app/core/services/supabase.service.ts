@@ -17,7 +17,7 @@ export class SupabaseService {
       environment.supabaseKey,
       {
         auth: {
-          storageKey: 'sb-iphdqxncfzsxfrmzuuab-auth-token-v2',
+          storageKey: 'device-borrowing-auth-token',
           lock: async (_name, _timeout, fn) => await fn()
         }
       }
@@ -52,7 +52,7 @@ export class SupabaseService {
     return this.currentUser.value;
   }
 
-  // 登入
+  // 管理員登入
   async signIn(email: string, password: string) {
     const { data, error } = await this.supabase.auth.signInWithPassword({
       email,
@@ -62,38 +62,9 @@ export class SupabaseService {
     return data;
   }
 
-  // 註冊
-  async signUp(email: string, password: string) {
-    const { data, error } = await this.supabase.auth.signUp({
-      email,
-      password
-    });
-    if (error) throw error;
-    return data;
-  }
-
-  // 管理員新增會員（透過 Edge Function）
-  async createMember(email: string, password: string, role: 'admin' | 'user') {
-    const { data, error } = await this.supabase.functions.invoke('create-member', {
-      body: { email, password, role }
-    });
-
-    if (error) {
-      throw new Error(error.message || '新增使用者失敗');
-    }
-
-    return data;
-  }
-
   // 登出
   async signOut() {
     const { error } = await this.supabase.auth.signOut();
-    if (error) throw error;
-  }
-
-  // 重設密碼
-  async resetPassword(email: string) {
-    const { error } = await this.supabase.auth.resetPasswordForEmail(email);
     if (error) throw error;
   }
 

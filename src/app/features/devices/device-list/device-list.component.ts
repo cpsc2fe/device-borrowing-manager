@@ -1,5 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { RouterModule } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -8,13 +9,14 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { DeviceService, DeviceWithBorrower } from '../../../core/services/device.service';
-import { BorrowDialogComponent } from '../borrow-dialog/borrow-dialog.component';
+import { QrDialogComponent } from '../../../shared/components/qr-dialog/qr-dialog.component';
 
 @Component({
   selector: 'app-device-list',
   standalone: true,
   imports: [
     CommonModule,
+    RouterModule,
     MatCardModule,
     MatButtonModule,
     MatIconModule,
@@ -25,6 +27,12 @@ import { BorrowDialogComponent } from '../borrow-dialog/borrow-dialog.component'
   ],
   template: `
     <div class="device-list-container">
+      <!-- 說明 -->
+      <div class="info-banner">
+        <mat-icon>qr_code_scanner</mat-icon>
+        <span>掃描設備上的 QR Code 即可借用或歸還</span>
+      </div>
+
       <!-- 統計卡片 -->
       <div class="stats-row">
         <div class="stat-card">
@@ -51,7 +59,7 @@ import { BorrowDialogComponent } from '../borrow-dialog/borrow-dialog.component'
       <div class="device-grid" *ngIf="!loading">
         <mat-card class="device-card" *ngFor="let device of devices">
           <!-- 設備圖片 -->
-          <div class="device-image">
+          <div class="device-image" [routerLink]="['/device', device.id]">
             <img *ngIf="device.image_url"
                  [src]="device.image_url"
                  [alt]="device.name"
@@ -63,9 +71,9 @@ import { BorrowDialogComponent } from '../borrow-dialog/borrow-dialog.component'
 
           <!-- 狀態標籤 -->
           <div class="status-badge" [ngClass]="device.status">
-            <span *ngIf="device.status === 'available'">🟢 可借用</span>
-            <span *ngIf="device.status === 'borrowed'">🔴 已借出</span>
-            <span *ngIf="device.status === 'maintenance'">🟡 維修中</span>
+            <span *ngIf="device.status === 'available'">可借用</span>
+            <span *ngIf="device.status === 'borrowed'">已借出</span>
+            <span *ngIf="device.status === 'maintenance'">維修中</span>
           </div>
 
           <!-- 設備資訊 -->
@@ -74,19 +82,25 @@ import { BorrowDialogComponent } from '../borrow-dialog/borrow-dialog.component'
             <p class="device-info">{{ device.brand }} · {{ device.os }} {{ device.os_version }}</p>
 
             <!-- 借用者資訊 -->
-            <div class="borrower-info" *ngIf="device.status === 'borrowed' && device.borrower_email">
+            <div class="borrower-info" *ngIf="device.status === 'borrowed' && device.borrower_name">
               <mat-icon>person</mat-icon>
-              <span>{{ device.borrower_email }}</span>
+              <span>{{ device.borrower_name }}</span>
             </div>
           </mat-card-content>
 
-          <!-- 借用按鈕 -->
-          <mat-card-actions *ngIf="device.status === 'available'">
-            <button mat-raised-button
+          <!-- 操作按鈕 -->
+          <mat-card-actions>
+            <button mat-stroked-button
                     color="primary"
-                    class="borrow-btn"
-                    (click)="openBorrowDialog(device)">
-              借用此設備
+                    (click)="showQrCode(device)">
+              <mat-icon>qr_code</mat-icon>
+              QR Code
+            </button>
+            <button mat-flat-button
+                    color="primary"
+                    [routerLink]="['/device', device.id]">
+              <mat-icon>open_in_new</mat-icon>
+              開啟
             </button>
           </mat-card-actions>
         </mat-card>
@@ -103,6 +117,23 @@ import { BorrowDialogComponent } from '../borrow-dialog/borrow-dialog.component'
     .device-list-container {
       max-width: 1200px;
       margin: 0 auto;
+    }
+
+    .info-banner {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 16px;
+      background: #e3f2fd;
+      border-radius: 8px;
+      margin-bottom: 16px;
+      color: #1565c0;
+    }
+
+    .info-banner mat-icon {
+      font-size: 20px;
+      width: 20px;
+      height: 20px;
     }
 
     .stats-row {
@@ -167,6 +198,11 @@ import { BorrowDialogComponent } from '../borrow-dialog/borrow-dialog.component'
       align-items: center;
       justify-content: center;
       overflow: hidden;
+      cursor: pointer;
+    }
+
+    .device-image:hover {
+      opacity: 0.9;
     }
 
     .device-image img {
@@ -244,10 +280,16 @@ import { BorrowDialogComponent } from '../borrow-dialog/borrow-dialog.component'
 
     mat-card-actions {
       padding: 8px 16px 16px !important;
+      display: flex;
+      gap: 8px;
     }
 
-    .borrow-btn {
-      width: 100%;
+    mat-card-actions button {
+      flex: 1;
+    }
+
+    mat-card-actions button mat-icon {
+      margin-right: 4px;
     }
 
     .empty-state {
@@ -297,7 +339,9 @@ export class DeviceListComponent implements OnInit {
     this.loading = true;
     try {
       this.devices = await this.deviceService.getDevices();
+      console.log('Loaded devices:', this.devices);
       this.stats = await this.deviceService.getStats();
+      console.log('Loaded stats:', this.stats);
     } catch (error) {
       console.error('Error loading devices:', error);
       this.snackBar.open('載入設備失敗', '關閉', { duration: 3000 });
@@ -306,15 +350,12 @@ export class DeviceListComponent implements OnInit {
     }
   }
 
-  openBorrowDialog(device: DeviceWithBorrower) {
-    const dialogRef = this.dialog.open(BorrowDialogComponent, {
-      width: '400px',
-      data: { device }
-    });
-
-    dialogRef.afterClosed().subscribe(result => {
-      if (result) {
-        this.loadDevices();
+  showQrCode(device: DeviceWithBorrower) {
+    this.dialog.open(QrDialogComponent, {
+      width: '350px',
+      data: {
+        deviceId: device.id,
+        deviceName: device.name
       }
     });
   }

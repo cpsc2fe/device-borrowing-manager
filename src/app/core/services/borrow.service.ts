@@ -1,20 +1,16 @@
 import { Injectable } from '@angular/core';
 import { SupabaseService } from './supabase.service';
-import { Device } from './device.service';
 
 export interface Borrow {
   id: string;
-  user_id: string;
   device_id: string;
+  borrower_name: string;
+  borrower_email: string | null;
   purpose: string | null;
   borrowed_at: string;
   returned_at: string | null;
   status: 'active' | 'returned';
   created_at: string;
-}
-
-export interface BorrowWithDevice extends Borrow {
-  devices: Pick<Device, 'id' | 'name' | 'brand' | 'model' | 'image_url'>;
 }
 
 @Injectable({
@@ -23,11 +19,18 @@ export interface BorrowWithDevice extends Borrow {
 export class BorrowService {
   constructor(private supabase: SupabaseService) {}
 
-  // 借用設備（使用 RPC 確保原子性）
-  async borrowDevice(deviceId: string, purpose?: string): Promise<{ success: boolean; error?: string; borrow_id?: string }> {
+  // 借用設備（QR Code 版本 - 使用姓名而非登入）
+  async borrowDevice(
+    deviceId: string,
+    borrowerName: string,
+    borrowerEmail?: string,
+    purpose?: string
+  ): Promise<{ success: boolean; error?: string; borrow_id?: string }> {
     const { data, error } = await this.supabase.client
       .rpc('borrow_device', {
         p_device_id: deviceId,
+        p_borrower_name: borrowerName,
+        p_borrower_email: borrowerEmail || null,
         p_purpose: purpose || null
       });
 
@@ -35,7 +38,7 @@ export class BorrowService {
     return data;
   }
 
-  // 歸還設備（使用 RPC 確保原子性）
+  // 歸還設備
   async returnDevice(borrowId: string): Promise<{ success: boolean; error?: string }> {
     const { data, error } = await this.supabase.client
       .rpc('return_device', {
@@ -46,71 +49,32 @@ export class BorrowService {
     return data;
   }
 
-  async notifyBorrow(deviceName: string, purpose?: string) {
-    const userEmail = this.supabase.currentUserValue?.email || '未知';
-    await this.sendTelegramNotification('borrow', deviceName, userEmail, purpose);
+  // 發送借用通知
+  async notifyBorrow(deviceName: string, borrowerName: string, borrowerEmail?: string, purpose?: string) {
+    await this.sendTelegramNotification('borrow', deviceName, borrowerName, borrowerEmail, purpose);
   }
 
-  async notifyReturn(deviceName: string) {
-    const userEmail = this.supabase.currentUserValue?.email || '未知';
-    await this.sendTelegramNotification('return', deviceName, userEmail);
-  }
-
-  // 取得我的借用記錄
-  async getMyBorrows(): Promise<BorrowWithDevice[]> {
-    const user = this.supabase.currentUserValue;
-    if (!user) return [];
-
-    const { data, error } = await this.supabase.client
-      .from('borrows')
-      .select(`
-        *,
-        devices (id, name, brand, model, image_url)
-      `)
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false });
-
-    if (error) throw error;
-    return data as BorrowWithDevice[];
-  }
-
-  // 取得我目前正在借用的設備
-  async getMyActiveBorrows(): Promise<BorrowWithDevice[]> {
-    const user = this.supabase.currentUserValue;
-    if (!user) return [];
-
-    const { data, error } = await this.supabase.client
-      .from('borrows')
-      .select(`
-        *,
-        devices (id, name, brand, model, image_url)
-      `)
-      .eq('user_id', user.id)
-      .eq('status', 'active')
-      .order('borrowed_at', { ascending: false });
-
-    if (error) throw error;
-    return data as BorrowWithDevice[];
+  // 發送歸還通知
+  async notifyReturn(deviceName: string, borrowerName: string) {
+    await this.sendTelegramNotification('return', deviceName, borrowerName);
   }
 
   // 取得所有借用記錄（管理員用）
-  async getAllBorrows(): Promise<BorrowWithDevice[]> {
+  async getAllBorrows(): Promise<Borrow[]> {
     const { data, error } = await this.supabase.client
       .from('borrows')
-      .select(`
-        *,
-        devices (id, name, brand, model, image_url)
-      `)
+      .select('*')
       .order('created_at', { ascending: false });
 
     if (error) throw error;
-    return data as BorrowWithDevice[];
+    return data as Borrow[];
   }
 
   private async sendTelegramNotification(
     type: 'borrow' | 'return',
     deviceName: string,
-    userEmail: string,
+    borrowerName: string,
+    borrowerEmail?: string,
     purpose?: string
   ) {
     try {
@@ -126,18 +90,22 @@ export class BorrowService {
 
       const { data: devices } = await this.supabase.client
         .from('devices_with_borrower')
-        .select('name,status,borrower_email')
+        .select('name,status,borrower_name')
         .order('name');
 
       const now = new Date().toLocaleString('zh-TW');
       let message = '';
+
+      const borrowerDisplay = borrowerEmail
+        ? `${borrowerName} (${borrowerEmail})`
+        : borrowerName;
 
       if (type === 'borrow') {
         message = [
           '📱 設備借用通知',
           '━━━━━━━━━━━━━━━',
           `設備：${deviceName}`,
-          `借用者：${userEmail}`,
+          `借用者：${borrowerDisplay}`,
           purpose ? `用途：${purpose}` : null,
           `時間：${now}`
         ].filter(Boolean).join('\n');
@@ -146,7 +114,7 @@ export class BorrowService {
           '✅ 設備歸還通知',
           '━━━━━━━━━━━━━━━',
           `設備：${deviceName}`,
-          `歸還者：${userEmail}`,
+          `歸還者：${borrowerName}`,
           `時間：${now}`
         ].join('\n');
       }
@@ -157,7 +125,7 @@ export class BorrowService {
           if (device.status === 'available') {
             message += `\n🟢 ${device.name} - 可借用`;
           } else if (device.status === 'borrowed') {
-            const borrower = device.borrower_email || '未知';
+            const borrower = device.borrower_name || '未知';
             message += `\n🔴 ${device.name} - ${borrower}`;
           } else if (device.status === 'maintenance') {
             message += `\n🟡 ${device.name} - 維修中`;

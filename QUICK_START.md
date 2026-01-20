@@ -58,7 +58,7 @@ npm install -g @angular/cli
 
 如果看到綠色的 "Success" 訊息，表示資料庫設定完成。
 
-### 2.2 建立第一個管理員帳號
+### 2.2 建立管理員帳號
 1. 點擊左側 **Authentication**
 2. 點擊 **Users** 標籤
 3. 點擊 "Add user" > "Create new user"
@@ -67,7 +67,7 @@ npm install -g @angular/cli
    - Password: 設定密碼
 5. 點擊 "Create user"
 
-接著手動設定為管理員：
+接著設定為管理員：
 1. 點擊左側 **Table Editor**
 2. 選擇 `users` 資料表
 3. 找到剛建立的使用者
@@ -118,21 +118,47 @@ ng serve
 
 ## Step 4：驗證設定
 
-### 登入測試
-1. 使用剛才建立的管理員帳號登入
-2. 應該可以看到空的設備列表頁面
-3. 嘗試新增一台測試設備
+### 4.1 新增設備
+1. 點擊右上角「管理員」按鈕
+2. 使用管理員帳號登入
+3. 前往「設備管理」
+4. 新增一台測試設備
 
-### 常見問題
+### 4.2 取得 QR Code
+1. 在設備管理頁面，點擊設備的 QR Code 按鈕
+2. 列印 QR Code 並貼在實體設備上
+
+### 4.3 測試借用流程
+1. 掃描 QR Code（或直接前往 `/device/設備ID`）
+2. 填寫姓名
+3. 點擊「借用此設備」
+4. 確認借用成功
+
+---
+
+## 設定 Telegram 通知（選用）
+
+詳細步驟請參考 [TELEGRAM_SETUP.md](./TELEGRAM_SETUP.md)
+
+1. 建立 Telegram Bot
+2. 取得 Bot Token 和 Chat ID
+3. 在系統設定頁面輸入相關資訊
+
+---
+
+## 常見問題
 
 **Q: 登入時顯示 "Invalid API key"**
 A: 確認 `environment.ts` 中的 `supabaseKey` 是否正確複製
 
-**Q: 登入後看到空白頁面**
-A: 開啟瀏覽器 DevTools (F12) 查看 Console 是否有錯誤訊息
+**Q: 看到 "permission denied" 錯誤**
+A: 確認 SQL 腳本是否完整執行成功
 
 **Q: 無法新增設備**
 A: 確認你的帳號在 `users` 資料表中的 `role` 是 `admin`
+
+**Q: QR Code 掃描後無法開啟**
+A: 確認系統已部署到可公開存取的網址
 
 ---
 
@@ -152,7 +178,6 @@ device-borrowing-manager/
 │   ├── app/
 │   │   ├── core/                 # 核心服務
 │   │   │   ├── services/
-│   │   │   │   ├── auth.service.ts
 │   │   │   │   ├── device.service.ts
 │   │   │   │   ├── borrow.service.ts
 │   │   │   │   └── supabase.service.ts
@@ -160,27 +185,23 @@ device-borrowing-manager/
 │   │   │       ├── auth.guard.ts
 │   │   │       └── admin.guard.ts
 │   │   ├── shared/               # 共用元件
-│   │   │   ├── components/
-│   │   │   └── pipes/
+│   │   │   └── components/
+│   │   │       ├── layout/
+│   │   │       ├── confirm-dialog/
+│   │   │       └── qr-dialog/
 │   │   ├── features/             # 功能模組
-│   │   │   ├── auth/             # 登入/註冊
-│   │   │   ├── devices/          # 設備列表
-│   │   │   ├── borrows/          # 借用管理
+│   │   │   ├── auth/             # 管理員登入
+│   │   │   ├── devices/          # 設備列表、借用頁
 │   │   │   └── admin/            # 管理後台
 │   │   ├── app.component.ts
-│   │   ├── app.module.ts
-│   │   └── app-routing.module.ts
+│   │   └── app.routes.ts
 │   ├── environments/
 │   │   ├── environment.ts        # 開發環境
 │   │   └── environment.prod.ts   # 生產環境
-│   ├── assets/
-│   ├── index.html
-│   ├── main.ts
 │   └── styles.css
 ├── sql/database.sql              # 資料庫 Schema
 ├── angular.json
-├── package.json
-└── tsconfig.json
+└── package.json
 ```
 
 ---
@@ -196,10 +217,4 @@ ng build --configuration production
 
 # 執行單元測試
 ng test
-
-# 產生新元件
-ng generate component features/devices/device-card
-
-# 產生新服務
-ng generate service core/services/notification
 ```

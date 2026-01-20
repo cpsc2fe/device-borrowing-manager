@@ -11,13 +11,15 @@ export interface Device {
   image_url: string | null;
   status: 'available' | 'borrowed' | 'maintenance';
   notes: string | null;
-  created_by: string | null;
   created_at: string;
   updated_at: string;
 }
 
 export interface DeviceWithBorrower extends Device {
+  active_borrow_id: string | null;
+  borrower_name: string | null;
   borrower_email: string | null;
+  borrow_purpose: string | null;
   borrowed_at: string | null;
 }
 
@@ -34,6 +36,7 @@ export class DeviceService {
       .select('*')
       .order('name');
 
+    console.log('getDevices response:', { data, error });
     if (error) throw error;
     return data as DeviceWithBorrower[];
   }
@@ -52,13 +55,9 @@ export class DeviceService {
 
   // 新增設備
   async createDevice(device: Partial<Device>): Promise<Device> {
-    const user = this.supabase.currentUserValue;
     const { data, error } = await this.supabase.client
       .from('devices')
-      .insert({
-        ...device,
-        created_by: user?.id
-      })
+      .insert(device)
       .select()
       .single();
 
@@ -126,6 +125,7 @@ export class DeviceService {
       .from('devices')
       .select('status');
 
+    console.log('getStats response:', { data, error });
     if (error) throw error;
 
     const stats = {

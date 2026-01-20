@@ -1,27 +1,69 @@
-# DeviceBorrowingManager
+# 測試機借用系統
 
-This project was generated with [Angular CLI](https://github.com/angular/angular-cli) version 17.3.1.
+簡單的 QR Code 測試機借用管理系統，適合小型團隊使用。
 
-## Development server
+## 功能特色
 
-Run `ng serve` for a dev server. Navigate to `http://localhost:4200/`. The application will automatically reload if you change any of the source files.
+- **QR Code 借用** - 掃描設備上的 QR Code 即可借用/歸還
+- **免登入借用** - 一般使用者不需註冊帳號，只需填寫姓名
+- **Telegram 通知** - 借用/歸還自動發送通知到 Telegram 群組
+- **管理員後台** - 管理設備、查看 QR Code、設定 Telegram
 
-## Code scaffolding
+## 使用流程
 
-Run `ng generate component component-name` to generate a new component. You can also use `ng generate directive|pipe|service|class|guard|interface|enum|module`.
+### 借用設備
+1. 掃描設備上的 QR Code
+2. 填寫姓名（Email 選填）
+3. 點擊「借用此設備」
 
-## Build
+### 歸還設備
+1. 掃描設備上的 QR Code
+2. 點擊「歸還此設備」
 
-Run `ng build` to build the project. The build artifacts will be stored in the `dist/` directory.
+## 快速開始
 
-## Running unit tests
+詳細設定步驟請參考 [QUICK_START.md](./QUICK_START.md)
 
-Run `ng test` to execute the unit tests via [Karma](https://karma-runner.github.io).
+### 必要條件
+- Node.js 18+
+- Supabase 專案
 
-## Running end-to-end tests
+### 安裝步驟
 
-Run `ng e2e` to execute the end-to-end tests via a platform of your choice. To use this command, you need to first add a package that implements end-to-end testing capabilities.
+```bash
+# 安裝依賴
+npm install
 
-## Further help
+# 設定環境變數
+cp src/environments/environment.example.ts src/environments/environment.ts
+# 編輯 environment.ts 填入 Supabase URL 和 Key
 
-To get more help on the Angular CLI use `ng help` or go check out the [Angular CLI Overview and Command Reference](https://angular.io/cli) page.
+# 啟動開發伺服器
+npm start
+```
+
+## 技術架構
+
+- **前端**: Angular 17 + Angular Material
+- **後端**: Supabase (PostgreSQL + Auth + Storage)
+- **通知**: Telegram Bot API
+
+## 文件
+
+- [快速開始指南](./QUICK_START.md)
+- [Supabase 設定](./SUPABASE_SETUP.md)
+- [Telegram 設定](./TELEGRAM_SETUP.md)
+- [UI 設計說明](./UI_DESIGN.md)
+
+## 開發
+
+```bash
+# 啟動開發伺服器
+npm start
+
+# 建置專案
+npm run build
+
+# 執行測試
+npm test
+```

@@ -6,11 +6,13 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { DeviceService, Device } from '../../../core/services/device.service';
 import { DeviceFormDialogComponent } from '../device-form-dialog/device-form-dialog.component';
 import { ConfirmDialogComponent } from '../../../shared/components/confirm-dialog/confirm-dialog.component';
+import { QrDialogComponent } from '../../../shared/components/qr-dialog/qr-dialog.component';
 
 @Component({
   selector: 'app-device-management',
@@ -23,6 +25,7 @@ import { ConfirmDialogComponent } from '../../../shared/components/confirm-dialo
     MatIconModule,
     MatChipsModule,
     MatProgressSpinnerModule,
+    MatTooltipModule,
     MatDialogModule,
     MatSnackBarModule
   ],
@@ -77,9 +80,9 @@ import { ConfirmDialogComponent } from '../../../shared/components/confirm-dialo
             <th mat-header-cell *matHeaderCellDef>狀態</th>
             <td mat-cell *matCellDef="let device">
               <span class="status-chip" [ngClass]="device.status">
-                <span *ngIf="device.status === 'available'">🟢 可借用</span>
-                <span *ngIf="device.status === 'borrowed'">🔴 已借出</span>
-                <span *ngIf="device.status === 'maintenance'">🟡 維修中</span>
+                <span *ngIf="device.status === 'available'">可借用</span>
+                <span *ngIf="device.status === 'borrowed'">已借出</span>
+                <span *ngIf="device.status === 'maintenance'">維修中</span>
               </span>
             </td>
           </ng-container>
@@ -88,10 +91,13 @@ import { ConfirmDialogComponent } from '../../../shared/components/confirm-dialo
           <ng-container matColumnDef="actions">
             <th mat-header-cell *matHeaderCellDef>操作</th>
             <td mat-cell *matCellDef="let device">
-              <button mat-icon-button color="primary" (click)="openEditDialog(device)">
+              <button mat-icon-button (click)="showQrCode(device)" matTooltip="QR Code">
+                <mat-icon>qr_code</mat-icon>
+              </button>
+              <button mat-icon-button color="primary" (click)="openEditDialog(device)" matTooltip="編輯">
                 <mat-icon>edit</mat-icon>
               </button>
-              <button mat-icon-button color="warn" (click)="deleteDevice(device)">
+              <button mat-icon-button color="warn" (click)="deleteDevice(device)" matTooltip="刪除">
                 <mat-icon>delete</mat-icon>
               </button>
             </td>
@@ -235,6 +241,16 @@ export class DeviceManagementComponent implements OnInit {
     } finally {
       this.loading = false;
     }
+  }
+
+  showQrCode(device: Device) {
+    this.dialog.open(QrDialogComponent, {
+      width: '350px',
+      data: {
+        deviceId: device.id,
+        deviceName: device.name
+      }
+    });
   }
 
   openAddDialog() {

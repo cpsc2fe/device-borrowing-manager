@@ -6,7 +6,8 @@
       "Bash(npm run build:*)",
       "Bash(git remote add:*)",
       "Bash(git remote:*)",
-      "Bash(git remote remove:*)"
+      "Bash(git remote remove:*)",
+      "Bash(ls:*)"
     ]
   }
 }
