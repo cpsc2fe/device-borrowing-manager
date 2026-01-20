@@ -3,7 +3,10 @@
     "allow": [
       "Bash(ng new:*)",
       "Bash(npm install:*)",
-      "Bash(npm run build:*)"
+      "Bash(npm run build:*)",
+      "Bash(git remote add:*)",
+      "Bash(git remote:*)",
+      "Bash(git remote remove:*)"
     ]
   }
 }

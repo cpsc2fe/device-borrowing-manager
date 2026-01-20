@@ -171,7 +171,7 @@ export class BorrowService {
       };
 
       if (config.thread_id) {
-        payload.message_thread_id = parseInt(config.thread_id, 10);
+        payload['message_thread_id'] = parseInt(config.thread_id, 10);
       }
 
       await fetch(`https://api.telegram.org/bot${config.bot_token}/sendMessage`, {
