@@ -403,13 +403,15 @@ export class DeviceListComponent implements OnInit {
           );
           if (response.success) {
             this.snackBar.open('借用成功！', '關閉', { duration: 3000 });
-            await this.loadDevices();
           } else {
             this.snackBar.open(response.error || '借用失敗', '關閉', { duration: 5000 });
           }
+          // 無論成功或失敗都重新載入列表（處理 race condition）
+          await this.loadDevices();
         } catch (error: any) {
           console.error('Borrow error:', error);
           this.snackBar.open(error.message || '借用失敗', '關閉', { duration: 5000 });
+          await this.loadDevices();
         } finally {
           device.processing = false;
         }
@@ -435,13 +437,15 @@ export class DeviceListComponent implements OnInit {
           const response = await this.borrowService.returnDevice(device.active_borrow_id);
           if (response.success) {
             this.snackBar.open('歸還成功！', '關閉', { duration: 3000 });
-            await this.loadDevices();
           } else {
             this.snackBar.open(response.error || '歸還失敗', '關閉', { duration: 5000 });
           }
+          // 無論成功或失敗都重新載入列表（處理 race condition）
+          await this.loadDevices();
         } catch (error: any) {
           console.error('Return error:', error);
           this.snackBar.open(error.message || '歸還失敗', '關閉', { duration: 5000 });
+          await this.loadDevices();
         } finally {
           device.processing = false;
         }
