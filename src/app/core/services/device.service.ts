@@ -36,7 +36,6 @@ export class DeviceService {
       .select('*')
       .order('name');
 
-    console.log('getDevices response:', { data, error });
     if (error) throw error;
     return data as DeviceWithBorrower[];
   }
@@ -125,7 +124,6 @@ export class DeviceService {
       .from('devices')
       .select('status');
 
-    console.log('getStats response:', { data, error });
     if (error) throw error;
 
     const stats = {

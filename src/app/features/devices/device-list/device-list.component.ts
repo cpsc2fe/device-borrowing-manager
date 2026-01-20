@@ -339,9 +339,7 @@ export class DeviceListComponent implements OnInit {
     this.loading = true;
     try {
       this.devices = await this.deviceService.getDevices();
-      console.log('Loaded devices:', this.devices);
       this.stats = await this.deviceService.getStats();
-      console.log('Loaded stats:', this.stats);
     } catch (error) {
       console.error('Error loading devices:', error);
       this.snackBar.open('載入設備失敗', '關閉', { duration: 3000 });

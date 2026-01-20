@@ -11,7 +11,8 @@
       "Bash(git add:*)",
       "Bash(git commit -m \"$\\(cat <<''EOF''\nrefactor: move Telegram notifications to database trigger\n\n- Merge telegram-trigger.sql into database.sql \\(single file setup\\)\n- Remove frontend Telegram notification code from borrow.service.ts\n- Update device-page.component.ts to remove notification calls\n- Restrict telegram_config RLS to admin-only \\(secure bot token\\)\n- Update QUICK_START.md documentation\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
       "Bash(git push:*)",
-      "Bash(git commit -m \"$\\(cat <<''EOF''\ndocs: update SUPABASE_SETUP.md for QR code architecture\n\n- Remove Edge Functions section \\(now using database triggers\\)\n- Update RLS section to explain anonymous access model\n- Simplify Authentication \\(only admin needs to register\\)\n- Add Database Trigger explanation for Telegram\n- Update frontend integration examples\n- Update FAQ section\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")"
+      "Bash(git commit -m \"$\\(cat <<''EOF''\ndocs: update SUPABASE_SETUP.md for QR code architecture\n\n- Remove Edge Functions section \\(now using database triggers\\)\n- Update RLS section to explain anonymous access model\n- Simplify Authentication \\(only admin needs to register\\)\n- Add Database Trigger explanation for Telegram\n- Update frontend integration examples\n- Update FAQ section\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nchore: remove debug console.log statements\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")"
     ]
   }
 }
