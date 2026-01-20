@@ -160,7 +160,7 @@ import { QrDialogComponent } from '../../../shared/components/qr-dialog/qr-dialo
     .device-thumb img {
       width: 100%;
       height: 100%;
-      object-fit: cover;
+      object-fit: contain;
     }
 
     .device-thumb mat-icon {

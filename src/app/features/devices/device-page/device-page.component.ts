@@ -189,7 +189,7 @@ import { ConfirmDialogComponent } from '../../../shared/components/confirm-dialo
     .device-image img {
       width: 100%;
       height: 100%;
-      object-fit: cover;
+      object-fit: contain;
     }
 
     .device-image .no-image {

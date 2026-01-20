@@ -208,7 +208,7 @@ import { QrDialogComponent } from '../../../shared/components/qr-dialog/qr-dialo
     .device-image img {
       width: 100%;
       height: 100%;
-      object-fit: cover;
+      object-fit: contain;
     }
 
     .no-image {
