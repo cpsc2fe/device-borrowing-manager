@@ -13,7 +13,8 @@
       "Bash(git push:*)",
       "Bash(git commit -m \"$\\(cat <<''EOF''\ndocs: update SUPABASE_SETUP.md for QR code architecture\n\n- Remove Edge Functions section \\(now using database triggers\\)\n- Update RLS section to explain anonymous access model\n- Simplify Authentication \\(only admin needs to register\\)\n- Add Database Trigger explanation for Telegram\n- Update frontend integration examples\n- Update FAQ section\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
       "Bash(git commit -m \"$\\(cat <<''EOF''\nchore: remove debug console.log statements\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
-      "Bash(git commit -m \"$\\(cat <<''EOF''\nchore: remove unused .env file\n\nEdge Functions removed, these credentials are no longer needed.\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")"
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nchore: remove unused .env file\n\nEdge Functions removed, these credentials are no longer needed.\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\ndocs: fix RLS table - remove non-existent \"logged in user\" column\n\nOnly anonymous users and admins exist in current architecture.\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")"
     ]
   }
 }
