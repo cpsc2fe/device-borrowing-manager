@@ -7,13 +7,12 @@
 ## 目錄
 1. [建立專案](#1-建立專案)
 2. [設定資料庫](#2-設定資料庫)
-3. [設定 Row Level Security (RLS)](#3-設定-row-level-security-rls)
+3. [理解 Row Level Security (RLS)](#3-理解-row-level-security-rls)
 4. [設定 Authentication](#4-設定-authentication)
 5. [設定 Storage](#5-設定-storage)
-6. [設定 Edge Functions](#6-設定-edge-functions)
-7. [設定 Database Triggers](#7-設定-database-triggers)
-8. [前端整合](#8-前端整合)
-9. [常見問題](#9-常見問題)
+6. [Telegram 通知機制](#6-telegram-通知機制)
+7. [前端整合](#7-前端整合)
+8. [常見問題](#8-常見問題)
 
 ---
 
@@ -45,8 +44,9 @@
 ```
 Project URL:     https://xxxxxxxxxx.supabase.co
 anon public key: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-service_role:    eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9... (僅用於後端，不要放在前端！)
 ```
+
+> ⚠️ `service_role` key 是高權限金鑰，本系統不需要使用，請勿放在前端！
 
 ---
 
@@ -61,208 +61,73 @@ service_role:    eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9... (僅用於後端，不�
 ### 2.2 驗證資料表建立成功
 1. 點擊左側選單 **Table Editor**
 2. 應該看到以下資料表：
-   - `users`
-   - `devices`
-   - `borrows`
-   - `telegram_config`
+   - `users` - 管理員帳號（與 Supabase Auth 連動）
+   - `devices` - 設備資料
+   - `borrows` - 借用記錄（使用 borrower_name 而非 user_id）
+   - `telegram_config` - Telegram 設定
+
+3. 應該看到以下 View：
+   - `devices_with_borrower` - 設備清單含借用者資訊
 
 ---
 
-## 3. 設定 Row Level Security (RLS)
+## 3. 理解 Row Level Security (RLS)
 
 > **什麼是 RLS？**
-> Row Level Security 是 PostgreSQL 的安全機制，可以控制每個使用者能存取哪些資料。這是 Supabase 安全性的核心。
+> Row Level Security 是 PostgreSQL 的安全機制，可以控制每個使用者能存取哪些資料。
 
-### 3.1 RLS 政策總覽
+### 3.1 本系統的 RLS 政策
 
-| 資料表 | SELECT | INSERT | UPDATE | DELETE |
-|-------|--------|--------|--------|--------|
-| users | 自己的資料 | - | 自己的資料 | - |
-| devices | 所有人 | Admin | Admin | Admin |
-| borrows | 所有人（用於顯示狀態） | 登入者 | 自己的借用 | Admin |
-| telegram_config | Admin | Admin | Admin | Admin |
+本系統採用 **QR Code 借用模式**，一般使用者不需登入即可借用設備：
 
-### 3.2 啟用 RLS
-在 SQL Editor 執行以下指令（已包含在 sql/database.sql 中）：
+| 資料表 | 匿名用戶 | 登入用戶 | 管理員 |
+|-------|---------|---------|-------|
+| users | ❌ | 讀取自己 | 讀取全部 |
+| devices | ✅ 讀取 | ✅ 讀取 | ✅ 完整權限 |
+| borrows | ✅ 讀取/新增/更新 | ✅ 讀取/新增/更新 | ✅ 完整權限 |
+| telegram_config | ❌ | ❌ | ✅ 完整權限 |
 
-```sql
--- 啟用 RLS
-ALTER TABLE users ENABLE ROW LEVEL SECURITY;
-ALTER TABLE devices ENABLE ROW LEVEL SECURITY;
-ALTER TABLE borrows ENABLE ROW LEVEL SECURITY;
-ALTER TABLE telegram_config ENABLE ROW LEVEL SECURITY;
-```
+### 3.2 為什麼 borrows 允許匿名存取？
 
-### 3.3 建立 RLS 政策
+因為借用流程是：
+1. 使用者掃描設備上的 QR Code
+2. 進入借用頁面，填寫姓名（不需登入）
+3. 系統透過 RPC 函數 `borrow_device` 原子性地建立借用記錄
 
-**users 資料表政策：**
-```sql
--- 使用者只能讀取自己的資料
-CREATE POLICY "Users can read own data"
-ON users FOR SELECT
-TO authenticated
-USING (auth.uid() = id);
+這樣設計的好處：
+- 使用者無需註冊帳號
+- 降低使用門檻
+- 透過 Telegram 通知追蹤借用紀錄
 
--- 使用者可以更新自己的資料
-CREATE POLICY "Users can update own data"
-ON users FOR UPDATE
-TO authenticated
-USING (auth.uid() = id);
-```
+### 3.3 為什麼 telegram_config 只允許管理員存取？
 
-**devices 資料表政策：**
-```sql
--- 所有登入者可以讀取設備列表
-CREATE POLICY "Anyone can read devices"
-ON devices FOR SELECT
-TO authenticated
-USING (true);
-
--- 只有 Admin 可以新增設備
-CREATE POLICY "Admin can insert devices"
-ON devices FOR INSERT
-TO authenticated
-WITH CHECK (
-  EXISTS (
-    SELECT 1 FROM users
-    WHERE users.id = auth.uid()
-    AND users.role = 'admin'
-  )
-);
-
--- 只有 Admin 可以更新設備
-CREATE POLICY "Admin can update devices"
-ON devices FOR UPDATE
-TO authenticated
-USING (
-  EXISTS (
-    SELECT 1 FROM users
-    WHERE users.id = auth.uid()
-    AND users.role = 'admin'
-  )
-);
-
--- 只有 Admin 可以刪除設備
-CREATE POLICY "Admin can delete devices"
-ON devices FOR DELETE
-TO authenticated
-USING (
-  EXISTS (
-    SELECT 1 FROM users
-    WHERE users.id = auth.uid()
-    AND users.role = 'admin'
-  )
-);
-```
-
-**borrows 資料表政策：**
-```sql
--- 所有登入者可以讀取借用記錄（用於顯示設備狀態）
-CREATE POLICY "Anyone can read borrows"
-ON borrows FOR SELECT
-TO authenticated
-USING (true);
-
--- 登入者可以建立借用記錄
-CREATE POLICY "Users can create borrows"
-ON borrows FOR INSERT
-TO authenticated
-WITH CHECK (auth.uid() = user_id);
-
--- 使用者只能更新自己的借用記錄（用於歸還）
-CREATE POLICY "Users can update own borrows"
-ON borrows FOR UPDATE
-TO authenticated
-USING (auth.uid() = user_id);
-
--- Admin 可以刪除任何借用記錄
-CREATE POLICY "Admin can delete borrows"
-ON borrows FOR DELETE
-TO authenticated
-USING (
-  EXISTS (
-    SELECT 1 FROM users
-    WHERE users.id = auth.uid()
-    AND users.role = 'admin'
-  )
-);
-```
-
-**telegram_config 資料表政策：**
-```sql
--- 只有 Admin 可以操作 telegram_config
-CREATE POLICY "Admin full access to telegram_config"
-ON telegram_config FOR ALL
-TO authenticated
-USING (
-  EXISTS (
-    SELECT 1 FROM users
-    WHERE users.id = auth.uid()
-    AND users.role = 'admin'
-  )
-);
-```
+`telegram_config` 儲存了 Bot Token，這是敏感資訊。透過限制只有管理員可以存取，可以：
+- 防止 Bot Token 洩露
+- 通知由 Database Trigger 直接發送，不經過前端
 
 ---
 
 ## 4. 設定 Authentication
 
-### 4.1 啟用 Email 認證
-1. 點擊左側選單 **Authentication**
-2. 點擊 **Providers**
-3. 確認 **Email** 已啟用（預設應該是啟用的）
-
-### 4.2 設定 Email 範本（選用）
-1. 點擊 **Email Templates**
-2. 可以自訂以下信件範本：
-   - Confirm signup（確認註冊）
-   - Reset password（重設密碼）
-
-範例：
-```
-主旨：確認你的 測試機借用系統 帳號
-
-Hi,
-
-請點擊以下連結確認你的帳號：
-{{ .ConfirmationURL }}
-
-如果你沒有註冊，請忽略此郵件。
-```
-
-### 4.3 建立管理員帳號
+### 4.1 建立管理員帳號
 1. 點擊 **Authentication > Users**
 2. 點擊 "Add user" > "Create new user"
 3. 填寫 Email 和 Password
 4. 點擊 "Create user"
 
-設定為管理員：
+### 4.2 設定為管理員
 1. 前往 **Table Editor > users**
-2. 找到該使用者
-3. 將 `role` 改為 `admin`
+2. 找到該使用者（應該已自動建立）
+3. 將 `role` 欄位改為 `admin`
 4. 儲存
 
-### 4.4 自動建立 users 記錄
-當使用者透過 Auth 註冊時，需要自動在 `users` 表建立對應記錄。
+> 💡 系統有設定 Trigger，當使用者透過 Auth 建立時會自動在 `users` 表建立對應記錄，預設 role 為 `user`。
 
-在 SQL Editor 執行：
-```sql
--- 建立 trigger function
-CREATE OR REPLACE FUNCTION public.handle_new_user()
-RETURNS TRIGGER AS $$
-BEGIN
-  INSERT INTO public.users (id, email, role, created_at)
-  VALUES (NEW.id, NEW.email, 'user', NOW());
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+### 4.3 關於一般使用者
 
--- 建立 trigger
-DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
-CREATE TRIGGER on_auth_user_created
-  AFTER INSERT ON auth.users
-  FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
-```
+本系統的一般使用者（借用設備的人）**不需要註冊帳號**。他們只需要：
+1. 掃描設備上的 QR Code
+2. 填寫姓名即可借用
 
 ---
 
@@ -270,605 +135,177 @@ CREATE TRIGGER on_auth_user_created
 
 用於儲存設備照片。
 
-### 5.1 建立 Bucket
+### 5.1 自動建立
+執行 `sql/database.sql` 時會自動建立 `device-images` bucket 和相關政策。
+
+### 5.2 手動建立（如果需要）
 1. 點擊左側選單 **Storage**
 2. 點擊 "New bucket"
 3. 填寫：
    - Name: `device-images`
-   - Public bucket: **開啟**（讓圖片可以公開存取）
+   - Public bucket: **開啟**
 4. 點擊 "Create bucket"
 
-### 5.2 設定 Storage 政策
-點擊 bucket 名稱 > **Policies** > "New Policy"
+### 5.3 Storage 政策
+- 任何人可以讀取圖片（公開）
+- 只有管理員可以上傳/刪除圖片
 
-**允許登入者上傳圖片：**
-```sql
-CREATE POLICY "Authenticated users can upload images"
-ON storage.objects FOR INSERT
-TO authenticated
-WITH CHECK (bucket_id = 'device-images');
+---
+
+## 6. Telegram 通知機制
+
+本系統使用 **Database Trigger + pg_net** 實現自動通知，不需要 Edge Functions。
+
+### 6.1 運作原理
+
+```
+借用/歸還 → borrows 表變更 → Trigger 觸發 → pg_net 發送 HTTP 請求 → Telegram API
 ```
 
-**允許任何人讀取圖片：**
-```sql
-CREATE POLICY "Anyone can read device images"
-ON storage.objects FOR SELECT
-TO public
-USING (bucket_id = 'device-images');
-```
+### 6.2 優點
+- **可靠**：通知在資料庫層級觸發，不依賴前端
+- **安全**：Bot Token 存在資料庫，只有管理員可以存取
+- **簡單**：不需要部署 Edge Functions
 
-**只有 Admin 可以刪除圖片：**
+### 6.3 設定步驟
+1. 在系統中以管理員登入
+2. 前往「系統設定」
+3. 填寫 Telegram Bot Token 和 Chat ID
+4. 啟用通知
+
+詳細設定請參考 [TELEGRAM_SETUP.md](./TELEGRAM_SETUP.md)
+
+### 6.4 Trigger 說明
+
+`database.sql` 包含以下 Trigger：
+
 ```sql
-CREATE POLICY "Admin can delete images"
-ON storage.objects FOR DELETE
-TO authenticated
-USING (
-  bucket_id = 'device-images'
-  AND EXISTS (
-    SELECT 1 FROM users
-    WHERE users.id = auth.uid()
-    AND users.role = 'admin'
-  )
-);
+-- 借用時發送通知
+CREATE TRIGGER on_borrow_created
+    AFTER INSERT ON public.borrows
+    FOR EACH ROW
+    EXECUTE FUNCTION public.send_telegram_notification();
+
+-- 歸還時發送通知
+CREATE TRIGGER on_borrow_returned
+    AFTER UPDATE ON public.borrows
+    FOR EACH ROW
+    WHEN (OLD.status = 'active' AND NEW.status = 'returned')
+    EXECUTE FUNCTION public.send_telegram_notification();
 ```
 
 ---
 
-## 6. 設定 Edge Functions
+## 7. 前端整合
 
-Edge Functions 用於發送 Telegram 通知。
-
-### 6.1 安裝 Supabase CLI
-
-```bash
-# macOS
-brew install supabase/tap/supabase
-
-# Windows (使用 scoop)
-scoop bucket add supabase https://github.com/supabase/scoop-bucket.git
-scoop install supabase
-
-# 或使用 npm
-npm install -g supabase
-```
-
-### 6.2 登入 Supabase CLI
-```bash
-supabase login
-```
-這會開啟瀏覽器讓你授權。
-
-### 6.3 初始化專案
-```bash
-cd device-borrowing-manager
-supabase init
-supabase link --project-ref <your-project-ref>
-```
-
-`project-ref` 可以在 Supabase Dashboard URL 中找到：
-`https://supabase.com/dashboard/project/xxxxxxxxxxxxx`
-                                    ↑ 這個就是 project-ref
-
-### 6.4 建立 Telegram 通知 Function
-```bash
-supabase functions new send-telegram-notification
-```
-
-編輯 `supabase/functions/send-telegram-notification/index.ts`：
-```typescript
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
-
-interface NotificationPayload {
-  type: 'borrow' | 'return'
-  deviceName: string
-  userEmail: string
-  purpose?: string
-}
-
-serve(async (req) => {
-  // Handle CORS
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
-  }
-
-  try {
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    )
-
-    // 取得 Telegram 設定
-    const { data: config } = await supabase
-      .from('telegram_config')
-      .select('*')
-      .eq('is_enabled', true)
-      .single()
-
-    if (!config) {
-      return new Response(
-        JSON.stringify({ message: 'Telegram notification disabled' }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
-    }
-
-    const payload: NotificationPayload = await req.json()
-
-    // 取得所有設備狀態
-    const { data: devices } = await supabase
-      .from('devices')
-      .select(`
-        id,
-        name,
-        status,
-        borrows!inner (
-          user_id,
-          users!inner (email)
-        )
-      `)
-      .order('name')
-
-    // 組合訊息
-    let message = ''
-    const now = new Date().toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' })
-
-    if (payload.type === 'borrow') {
-      message = `📱 設備借用通知\n━━━━━━━━━━━━━━━\n設備：${payload.deviceName}\n借用者：${payload.userEmail}\n時間：${now}`
-      if (payload.purpose) {
-        message += `\n用途：${payload.purpose}`
-      }
-    } else {
-      message = `✅ 設備歸還通知\n━━━━━━━━━━━━━━━\n設備：${payload.deviceName}\n歸還者：${payload.userEmail}\n時間：${now}`
-    }
-
-    // 加入設備狀態列表
-    message += '\n\n📊 目前狀態：'
-    devices?.forEach(device => {
-      if (device.status === 'available') {
-        message += `\n🟢 ${device.name} - 可借用`
-      } else if (device.status === 'borrowed') {
-        const borrower = device.borrows?.[0]?.users?.email || '未知'
-        message += `\n🔴 ${device.name} - ${borrower}`
-      } else if (device.status === 'maintenance') {
-        message += `\n🟡 ${device.name} - 維修中`
-      }
-    })
-
-    // 發送 Telegram 訊息
-    const telegramUrl = `https://api.telegram.org/bot${config.bot_token}/sendMessage`
-    const telegramPayload: any = {
-      chat_id: config.chat_id,
-      text: message,
-      parse_mode: 'HTML'
-    }
-
-    // 如果有設定 thread_id（話題 ID）
-    if (config.thread_id) {
-      telegramPayload.message_thread_id = parseInt(config.thread_id)
-    }
-
-    const response = await fetch(telegramUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(telegramPayload)
-    })
-
-    const result = await response.json()
-
-    return new Response(
-      JSON.stringify({ success: true, result }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    )
-
-  } catch (error) {
-    return new Response(
-      JSON.stringify({ error: error.message }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    )
-  }
-})
-```
-
-### 6.5 部署 Function
-```bash
-supabase functions deploy send-telegram-notification
-```
-
----
-
-## 7. 設定 Database Triggers
-
-當借用/歸還發生時，自動呼叫 Edge Function 發送通知。
-
-### 7.1 建立 Trigger Function
-在 SQL Editor 執行（也可直接使用 `sql/telegram-trigger.sql` 內容）：
-
-```sql
--- 需要先啟用 http extension
-CREATE EXTENSION IF NOT EXISTS http WITH SCHEMA extensions;
-
--- 建立通知函數
-CREATE OR REPLACE FUNCTION notify_telegram()
-RETURNS TRIGGER AS $$
-DECLARE
-  device_name TEXT;
-  user_email TEXT;
-  payload JSONB;
-  supabase_url TEXT;
-  service_key TEXT;
-BEGIN
-  -- 取得設備名稱
-  SELECT name INTO device_name FROM devices WHERE id = NEW.device_id;
-
-  -- 取得使用者 email
-  SELECT email INTO user_email FROM users WHERE id = NEW.user_id;
-
-  -- 判斷是借用還是歸還
-  IF TG_OP = 'INSERT' THEN
-    payload = jsonb_build_object(
-      'type', 'borrow',
-      'deviceName', device_name,
-      'userEmail', user_email,
-      'purpose', NEW.purpose
-    );
-  ELSIF TG_OP = 'UPDATE' AND NEW.status = 'returned' AND OLD.status = 'active' THEN
-    payload = jsonb_build_object(
-      'type', 'return',
-      'deviceName', device_name,
-      'userEmail', user_email
-    );
-  ELSE
-    RETURN NEW;
-  END IF;
-
-  -- 呼叫 Edge Function (非同步，不阻塞)
-  -- 注意：這裡使用 pg_net extension，需要在 Supabase Dashboard 啟用
-  PERFORM net.http_post(
-    url := 'https://<your-project-ref>.supabase.co/functions/v1/send-telegram-notification',
-    headers := jsonb_build_object(
-      'Content-Type', 'application/json',
-      'Authorization', 'Bearer ' || '<your-anon-key>'
-    ),
-    body := payload
-  );
-
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
-
--- 建立 Trigger
-DROP TRIGGER IF EXISTS on_borrow_change ON borrows;
-CREATE TRIGGER on_borrow_change
-  AFTER INSERT OR UPDATE ON borrows
-  FOR EACH ROW EXECUTE FUNCTION notify_telegram();
-```
-
-### 7.2 啟用 pg_net Extension
-1. 前往 **Database > Extensions**
-2. 搜尋 `pg_net`
-3. 點擊 "Enable"
-
----
-
-## 8. 前端整合
-
-### 8.1 安裝 Supabase JS Client
+### 7.1 安裝 Supabase JS Client
 ```bash
 npm install @supabase/supabase-js
 ```
 
-### 8.2 建立 Supabase Service
-`src/app/core/services/supabase.service.ts`:
+### 7.2 環境設定
+`src/environments/environment.ts`:
 
 ```typescript
-import { Injectable } from '@angular/core';
-import { createClient, SupabaseClient, User } from '@supabase/supabase-js';
-import { environment } from '../../../environments/environment';
-import { BehaviorSubject } from 'rxjs';
-
-@Injectable({
-  providedIn: 'root'
-})
-export class SupabaseService {
-  private supabase: SupabaseClient;
-  private currentUser = new BehaviorSubject<User | null>(null);
-
-  constructor() {
-    this.supabase = createClient(
-      environment.supabaseUrl,
-      environment.supabaseKey
-    );
-
-    // 監聽認證狀態變化
-    this.supabase.auth.onAuthStateChange((event, session) => {
-      this.currentUser.next(session?.user ?? null);
-    });
-  }
-
-  get client() {
-    return this.supabase;
-  }
-
-  get user$() {
-    return this.currentUser.asObservable();
-  }
-
-  // 登入
-  async signIn(email: string, password: string) {
-    return this.supabase.auth.signInWithPassword({ email, password });
-  }
-
-  // 登出
-  async signOut() {
-    return this.supabase.auth.signOut();
-  }
-
-  // 取得當前使用者
-  async getCurrentUser() {
-    const { data: { user } } = await this.supabase.auth.getUser();
-    return user;
-  }
-
-  // 取得使用者角色
-  async getUserRole(): Promise<'admin' | 'user' | null> {
-    const user = await this.getCurrentUser();
-    if (!user) return null;
-
-    const { data } = await this.supabase
-      .from('users')
-      .select('role')
-      .eq('id', user.id)
-      .single();
-
-    return data?.role ?? 'user';
-  }
-}
+export const environment = {
+  production: false,
+  supabaseUrl: 'https://xxxxxxxxxx.supabase.co',
+  supabaseKey: 'eyJhbGciOiJIUzI1NiIs...'  // anon public key
+};
 ```
 
-### 8.3 建立 Device Service
-`src/app/core/services/device.service.ts`:
+### 7.3 Supabase Service
+
+主要功能：
+- `signIn(email, password)` - 管理員登入
+- `signOut()` - 登出
+- `isAdmin()` - 檢查是否為管理員
+- `user$` - 使用者狀態 Observable
+
+### 7.4 Device Service
+
+主要功能：
+- `getDevices()` - 取得設備列表（含借用者資訊）
+- `getDevice(id)` - 取得單一設備
+- `createDevice(device)` - 新增設備（管理員）
+- `updateDevice(id, device)` - 更新設備（管理員）
+- `deleteDevice(id)` - 刪除設備（管理員）
+
+### 7.5 Borrow Service
+
+主要功能：
+- `borrowDevice(deviceId, borrowerName, borrowerEmail?, purpose?)` - 借用設備
+- `returnDevice(borrowId)` - 歸還設備
+
+這些方法呼叫資料庫的 RPC 函數，確保原子性操作：
 
 ```typescript
-import { Injectable } from '@angular/core';
-import { SupabaseService } from './supabase.service';
+// 借用設備
+const result = await this.supabase.client.rpc('borrow_device', {
+  p_device_id: deviceId,
+  p_borrower_name: borrowerName,
+  p_borrower_email: borrowerEmail || null,
+  p_purpose: purpose || null
+});
 
-export interface Device {
-  id: string;
-  name: string;
-  brand: string;
-  model: string;
-  os: string;
-  os_version: string;
-  image_url: string | null;
-  status: 'available' | 'borrowed' | 'maintenance';
-  notes: string | null;
-  created_at: string;
-}
-
-@Injectable({
-  providedIn: 'root'
-})
-export class DeviceService {
-  constructor(private supabase: SupabaseService) {}
-
-  // 取得所有設備
-  async getDevices() {
-    const { data, error } = await this.supabase.client
-      .from('devices')
-      .select('*')
-      .order('name');
-
-    if (error) throw error;
-    return data as Device[];
-  }
-
-  // 取得設備詳情（含目前借用者）
-  async getDeviceWithBorrower(deviceId: string) {
-    const { data, error } = await this.supabase.client
-      .from('devices')
-      .select(`
-        *,
-        borrows!inner (
-          id,
-          purpose,
-          borrowed_at,
-          users!inner (email)
-        )
-      `)
-      .eq('id', deviceId)
-      .eq('borrows.status', 'active')
-      .single();
-
-    if (error && error.code !== 'PGRST116') throw error;
-    return data;
-  }
-
-  // 新增設備
-  async createDevice(device: Partial<Device>) {
-    const { data, error } = await this.supabase.client
-      .from('devices')
-      .insert(device)
-      .select()
-      .single();
-
-    if (error) throw error;
-    return data;
-  }
-
-  // 更新設備
-  async updateDevice(id: string, device: Partial<Device>) {
-    const { data, error } = await this.supabase.client
-      .from('devices')
-      .update(device)
-      .eq('id', id)
-      .select()
-      .single();
-
-    if (error) throw error;
-    return data;
-  }
-
-  // 刪除設備
-  async deleteDevice(id: string) {
-    const { error } = await this.supabase.client
-      .from('devices')
-      .delete()
-      .eq('id', id);
-
-    if (error) throw error;
-  }
-}
-```
-
-### 8.4 建立 Borrow Service
-`src/app/core/services/borrow.service.ts`:
-
-```typescript
-import { Injectable } from '@angular/core';
-import { SupabaseService } from './supabase.service';
-
-@Injectable({
-  providedIn: 'root'
-})
-export class BorrowService {
-  constructor(private supabase: SupabaseService) {}
-
-  // 借用設備
-  async borrowDevice(deviceId: string, purpose?: string) {
-    const user = await this.supabase.getCurrentUser();
-    if (!user) throw new Error('Not authenticated');
-
-    // 開始交易
-    // 1. 建立借用記錄
-    const { error: borrowError } = await this.supabase.client
-      .from('borrows')
-      .insert({
-        user_id: user.id,
-        device_id: deviceId,
-        purpose: purpose || null,
-        borrowed_at: new Date().toISOString(),
-        status: 'active'
-      });
-
-    if (borrowError) throw borrowError;
-
-    // 2. 更新設備狀態
-    const { error: deviceError } = await this.supabase.client
-      .from('devices')
-      .update({ status: 'borrowed' })
-      .eq('id', deviceId);
-
-    if (deviceError) throw deviceError;
-  }
-
-  // 歸還設備
-  async returnDevice(borrowId: string, deviceId: string) {
-    // 1. 更新借用記錄
-    const { error: borrowError } = await this.supabase.client
-      .from('borrows')
-      .update({
-        returned_at: new Date().toISOString(),
-        status: 'returned'
-      })
-      .eq('id', borrowId);
-
-    if (borrowError) throw borrowError;
-
-    // 2. 更新設備狀態
-    const { error: deviceError } = await this.supabase.client
-      .from('devices')
-      .update({ status: 'available' })
-      .eq('id', deviceId);
-
-    if (deviceError) throw deviceError;
-  }
-
-  // 取得我的借用記錄
-  async getMyBorrows() {
-    const user = await this.supabase.getCurrentUser();
-    if (!user) return [];
-
-    const { data, error } = await this.supabase.client
-      .from('borrows')
-      .select(`
-        *,
-        devices (id, name, brand, model, image_url)
-      `)
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false });
-
-    if (error) throw error;
-    return data;
-  }
-
-  // 取得目前正在借用的記錄
-  async getActiveBorrows() {
-    const user = await this.supabase.getCurrentUser();
-    if (!user) return [];
-
-    const { data, error } = await this.supabase.client
-      .from('borrows')
-      .select(`
-        *,
-        devices (id, name, brand, model, image_url)
-      `)
-      .eq('user_id', user.id)
-      .eq('status', 'active');
-
-    if (error) throw error;
-    return data;
-  }
-}
+// 歸還設備
+const result = await this.supabase.client.rpc('return_device', {
+  p_borrow_id: borrowId
+});
 ```
 
 ---
 
-## 9. 常見問題
+## 8. 常見問題
 
-### Q1: RLS 政策不生效？
-**解決方案：**
-1. 確認已執行 `ALTER TABLE xxx ENABLE ROW LEVEL SECURITY;`
-2. 在 Table Editor 中確認 "RLS Enabled" 是開啟的
-3. 使用 SQL Editor 測試：
-```sql
--- 以特定使用者身份測試
-SET request.jwt.claim.sub = 'user-uuid-here';
-SELECT * FROM devices;
-```
+### Q1: 設備列表顯示為空？
+**可能原因：**
+1. 資料庫沒有設備資料
+2. RLS 政策問題
 
-### Q2: Edge Function 部署失敗？
 **解決方案：**
-1. 確認已執行 `supabase login`
-2. 確認已執行 `supabase link --project-ref xxx`
-3. 檢查 Function 程式碼有無語法錯誤
+1. 在 Table Editor 確認 `devices` 表有資料
+2. 確認 RLS 政策允許匿名讀取
+3. 檢查瀏覽器 Console 是否有錯誤訊息
+
+### Q2: 借用失敗？
+**可能原因：**
+1. 設備狀態不是 `available`
+2. 沒有填寫借用者姓名
+
+**解決方案：**
+1. 確認設備狀態為「可借用」
+2. 確認已填寫姓名欄位
 
 ### Q3: Telegram 通知沒有收到？
 **解決方案：**
-1. 確認 `telegram_config` 表中的 `is_enabled` 是 `true`
+1. 確認已在系統設定中啟用通知
 2. 確認 Bot Token 正確
-3. 確認 Chat ID 正確（群組 ID 是負數）
+3. 確認 Chat ID 正確（群組 ID 是負數，如 `-1001234567890`）
 4. 確認 Bot 已被加入群組並有發言權限
-5. 查看 Edge Function Logs：Dashboard > Edge Functions > Logs
+5. 檢查 Supabase Logs 是否有錯誤
 
 ### Q4: 圖片上傳失敗？
 **解決方案：**
-1. 確認 Storage bucket 存在
-2. 確認 Storage 政策已設定
+1. 確認已以管理員身份登入
+2. 確認 `device-images` bucket 存在
 3. 檢查圖片大小是否超過限制（免費方案單檔 50MB）
 
-### Q5: 借用時設備狀態沒有更新？
+### Q5: 管理員登入後看不到管理功能？
 **解決方案：**
-1. 確認 `devices` 表的 RLS 政策允許更新
-2. 使用 RPC 函數來確保原子性操作
+1. 確認 `users` 表中該帳號的 `role` 是 `admin`
+2. 嘗試登出後重新登入
+
+### Q6: pg_net 擴充套件錯誤？
+**解決方案：**
+1. 前往 **Database > Extensions**
+2. 搜尋 `pg_net`
+3. 確認已啟用（應該在執行 database.sql 時自動啟用）
 
 ---
 
 ## 下一步
 
+- 📖 [QUICK_START.md](./QUICK_START.md) - 快速上手指南
 - 🎨 [UI_DESIGN.md](./UI_DESIGN.md) - 了解 UI 設計規範
 - 🤖 [TELEGRAM_SETUP.md](./TELEGRAM_SETUP.md) - 設定 Telegram 通知
