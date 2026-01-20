@@ -248,6 +248,7 @@ export class SettingsComponent implements OnInit {
       const { data, error } = await this.supabase.client
         .from('telegram_config')
         .select('*')
+        .order('updated_at', { ascending: false })
         .limit(1)
         .single();
 
@@ -267,6 +268,38 @@ export class SettingsComponent implements OnInit {
   async saveSettings() {
     this.saving = true;
     try {
+      if (!this.config.id) {
+        const { data, error } = await this.supabase.client
+          .from('telegram_config')
+          .select('id')
+          .order('updated_at', { ascending: false })
+          .limit(1)
+          .single();
+
+        if (error && error.code !== 'PGRST116') throw error;
+        if (data?.id) {
+          this.config.id = data.id;
+        }
+      }
+
+      if (!this.config.id) {
+        const { data, error } = await this.supabase.client
+          .from('telegram_config')
+          .insert({
+            bot_token: this.config.bot_token || null,
+            chat_id: this.config.chat_id || null,
+            thread_id: this.config.thread_id || null,
+            is_enabled: this.config.is_enabled
+          })
+          .select('id')
+          .single();
+
+        if (error) throw error;
+        this.config.id = data.id;
+        this.snackBar.open('設定已儲存', '關閉', { duration: 3000 });
+        return;
+      }
+
       const { error } = await this.supabase.client
         .from('telegram_config')
         .update({
