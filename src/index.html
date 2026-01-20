@@ -12,6 +12,16 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   </head>
   <body>
+    <script>
+      (function () {
+        var l = window.location;
+        if (l.search.startsWith('?/')) {
+          var decoded = l.search.slice(2);
+          var redirectPath = decoded.split('&').join('?');
+          window.history.replaceState(null, '', l.pathname + redirectPath + l.hash);
+        }
+      })();
+    </script>
     <app-root></app-root>
   </body>
 </html>
