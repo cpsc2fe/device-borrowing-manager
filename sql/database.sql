@@ -465,6 +465,8 @@ BEGIN
         END IF;
     END LOOP;
 
+    v_message := v_message || E'\n\n🌐 系統連結：https://cpsc2fe.github.io/device-borrowing-manager/';
+
     -- 建立 Telegram API payload
     v_payload := jsonb_build_object(
         'chat_id', v_config.chat_id,
