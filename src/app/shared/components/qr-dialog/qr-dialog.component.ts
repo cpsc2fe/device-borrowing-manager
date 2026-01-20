@@ -81,8 +81,8 @@ export class QrDialogComponent {
     @Inject(MAT_DIALOG_DATA) public data: QrDialogData
   ) {
     // Generate URL based on current origin
-    const origin = window.location.origin;
-    this.qrUrl = `${origin}/device/${data.deviceId}`;
+    const baseHref = document.querySelector('base')?.getAttribute('href') || '/';
+    this.qrUrl = new URL(`device/${data.deviceId}`, window.location.origin + baseHref).toString();
   }
 
   copyUrl() {
