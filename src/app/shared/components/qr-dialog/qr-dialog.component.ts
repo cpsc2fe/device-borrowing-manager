@@ -41,10 +41,6 @@ export interface QrDialogData {
         <mat-icon>content_copy</mat-icon>
         複製連結
       </button>
-      <button mat-button (click)="print()">
-        <mat-icon>print</mat-icon>
-        列印
-      </button>
       <button mat-button mat-dialog-close>關閉</button>
     </mat-dialog-actions>
   `,
@@ -91,79 +87,7 @@ export class QrDialogComponent {
 
   copyUrl() {
     navigator.clipboard.writeText(this.qrUrl).then(() => {
-      // Could show a snackbar here, but keeping it simple
       alert('連結已複製！');
     });
-  }
-
-  print() {
-    const printWindow = window.open('', '_blank');
-    if (printWindow) {
-      printWindow.document.write(`
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <title>${this.data.deviceName} - QR Code</title>
-          <style>
-            body {
-              display: flex;
-              flex-direction: column;
-              align-items: center;
-              justify-content: center;
-              min-height: 100vh;
-              margin: 0;
-              font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            }
-            .container {
-              text-align: center;
-              padding: 20px;
-            }
-            h1 {
-              font-size: 24px;
-              margin: 0 0 20px;
-            }
-            .qr-wrapper {
-              padding: 20px;
-              border: 2px dashed #ccc;
-              display: inline-block;
-              margin-bottom: 16px;
-            }
-            p {
-              color: #666;
-              font-size: 14px;
-              margin: 8px 0;
-            }
-            @media print {
-              body { -webkit-print-color-adjust: exact; }
-            }
-          </style>
-        </head>
-        <body>
-          <div class="container">
-            <h1>${this.data.deviceName}</h1>
-            <div class="qr-wrapper">
-              <img src="${this.getQrImageUrl()}" width="200" height="200" />
-            </div>
-            <p>掃描借用 / 歸還</p>
-          </div>
-          <script>
-            window.onload = function() {
-              setTimeout(function() {
-                window.print();
-                window.close();
-              }, 500);
-            };
-          </script>
-        </body>
-        </html>
-      `);
-      printWindow.document.close();
-    }
-  }
-
-  private getQrImageUrl(): string {
-    // Use Google Charts API for print (simple approach)
-    const encoded = encodeURIComponent(this.qrUrl);
-    return `https://chart.googleapis.com/chart?cht=qr&chs=200x200&chl=${encoded}`;
   }
 }
