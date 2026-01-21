@@ -12,6 +12,7 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { DeviceService, DeviceWithBorrower } from '../../../core/services/device.service';
 import { BorrowService } from '../../../core/services/borrow.service';
+import { SupabaseService } from '../../../core/services/supabase.service';
 import { ConfirmDialogComponent } from '../../../shared/components/confirm-dialog/confirm-dialog.component';
 import { ReturnConfirmDialogComponent } from '../../../shared/components/return-confirm-dialog/return-confirm-dialog.component';
 import { ImageLightboxComponent } from '../../../shared/components/image-lightbox/image-lightbox.component';
@@ -132,8 +133,8 @@ import { ImageLightboxComponent } from '../../../shared/components/image-lightbo
             </button>
           </div>
 
-          <!-- Return Button (when borrowed) -->
-          <div class="return-section" *ngIf="device.status === 'borrowed'">
+          <!-- Return Button (when borrowed by current user) -->
+          <div class="return-section" *ngIf="device.status === 'borrowed' && device.borrower_email === currentUserEmail">
             <button mat-raised-button
                     color="warn"
                     class="full-width action-btn"
@@ -142,6 +143,12 @@ import { ImageLightboxComponent } from '../../../shared/components/image-lightbo
               <mat-spinner diameter="20" *ngIf="processing"></mat-spinner>
               <span *ngIf="!processing">歸還此設備</span>
             </button>
+          </div>
+
+          <!-- Borrowed by another user notice -->
+          <div class="other-borrower-notice" *ngIf="device.status === 'borrowed' && device.borrower_email !== currentUserEmail">
+            <mat-icon>info</mat-icon>
+            <p>此設備由其他用戶借用中，無法歸還</p>
           </div>
 
           <!-- Maintenance Notice -->
@@ -340,7 +347,8 @@ import { ImageLightboxComponent } from '../../../shared/components/image-lightbo
       margin-right: 8px;
     }
 
-    .maintenance-notice {
+    .maintenance-notice,
+    .other-borrower-notice {
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -349,10 +357,16 @@ import { ImageLightboxComponent } from '../../../shared/components/image-lightbo
       color: var(--app-text-muted);
     }
 
-    .maintenance-notice mat-icon {
+    .maintenance-notice mat-icon,
+    .other-borrower-notice mat-icon {
       font-size: 48px;
       width: 48px;
       height: 48px;
+    }
+
+    .other-borrower-notice p {
+      margin: 0;
+      text-align: center;
     }
   `]
 })
@@ -361,6 +375,7 @@ export class DevicePageComponent implements OnInit {
   loading = true;
   error: string | null = null;
   processing = false;
+  currentUserEmail = '';
 
   borrowerName = '';
   borrowerEmail = '';
@@ -373,12 +388,14 @@ export class DevicePageComponent implements OnInit {
     private route: ActivatedRoute,
     private deviceService: DeviceService,
     private borrowService: BorrowService,
+    private supabase: SupabaseService,
     private snackBar: MatSnackBar,
     private dialog: MatDialog,
     private router: Router
   ) {
     this.borrowerName = localStorage.getItem(this.STORAGE_KEY_NAME) || '';
     this.borrowerEmail = localStorage.getItem(this.STORAGE_KEY_EMAIL) || '';
+    this.currentUserEmail = this.supabase.currentUserValue?.email || '';
   }
 
   ngOnInit() {

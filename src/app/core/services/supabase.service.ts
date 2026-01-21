@@ -88,6 +88,30 @@ export class SupabaseService {
     if (error) throw error;
   }
 
+  // 變更密碼（需要輸入原本密碼進行驗證）
+  async changePassword(currentPassword: string, newPassword: string) {
+    const user = this.currentUserValue;
+    const email = user?.email;
+    if (!email) {
+      throw new Error('尚未登入');
+    }
+
+    const { error: signInError } = await this.supabase.auth.signInWithPassword({
+      email,
+      password: currentPassword
+    });
+    if (signInError) {
+      throw new Error('原本密碼錯誤');
+    }
+
+    const { error: updateError } = await this.supabase.auth.updateUser({
+      password: newPassword
+    });
+    if (updateError) {
+      throw updateError;
+    }
+  }
+
   // 取得使用者角色
   async getUserRole(): Promise<'admin' | 'user' | null> {
     const user = this.currentUserValue;

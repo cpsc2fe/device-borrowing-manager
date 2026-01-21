@@ -26,56 +26,64 @@ import { SupabaseService } from '../../../core/services/supabase.service';
     MatProgressSpinnerModule,
     MatIconModule,
     MatCheckboxModule,
-    MatSnackBarModule
+    MatSnackBarModule,
   ],
   template: `
     <div class="login-container">
       <mat-card class="login-card">
         <mat-card-header>
           <mat-card-title>
-            <img class="logo" src="assets/images/favicon.png" alt="借機機">
+            <img class="logo" src="assets/images/favicon.png" alt="借機機" />
             登入
           </mat-card-title>
-          <p class="subtitle">借機機</p>
+          <p class="subtitle">借機機 - 輕鬆管理團隊的測試設備</p>
         </mat-card-header>
 
         <mat-card-content>
           <form (ngSubmit)="onSubmit()" #loginForm="ngForm">
             <mat-form-field appearance="outline" class="full-width">
               <mat-label>Email</mat-label>
-              <input matInput
-                     type="email"
-                     [(ngModel)]="email"
-                     name="email"
-                     required
-                     email
-                     [disabled]="loading">
+              <input
+                matInput
+                type="email"
+                [(ngModel)]="email"
+                name="email"
+                required
+                email
+                [disabled]="loading"
+              />
             </mat-form-field>
 
             <mat-form-field appearance="outline" class="full-width">
               <mat-label>密碼</mat-label>
-              <input matInput
-                     type="password"
-                     [(ngModel)]="password"
-                     name="password"
-                     required
-                     minlength="6"
-                     [disabled]="loading">
+              <input
+                matInput
+                type="password"
+                [(ngModel)]="password"
+                name="password"
+                required
+                minlength="6"
+                [disabled]="loading"
+              />
             </mat-form-field>
 
-            <mat-checkbox [(ngModel)]="rememberMe"
-                          name="rememberMe"
-                          color="primary"
-                          class="remember-checkbox"
-                          [disabled]="loading">
+            <mat-checkbox
+              [(ngModel)]="rememberMe"
+              name="rememberMe"
+              color="primary"
+              class="remember-checkbox"
+              [disabled]="loading"
+            >
               記住登入狀態
             </mat-checkbox>
 
-            <button mat-raised-button
-                    color="primary"
-                    type="submit"
-                    class="full-width login-btn"
-                    [disabled]="loading || !loginForm.valid">
+            <button
+              mat-raised-button
+              color="primary"
+              type="submit"
+              class="full-width login-btn"
+              [disabled]="loading || !loginForm.valid"
+            >
               <mat-spinner diameter="20" *ngIf="loading"></mat-spinner>
               <span *ngIf="!loading">登入</span>
             </button>
@@ -84,93 +92,100 @@ import { SupabaseService } from '../../../core/services/supabase.service';
       </mat-card>
     </div>
   `,
-  styles: [`
-    .login-container {
-      min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: radial-gradient(circle at top, #2e3136 0%, #1f2124 55%, #17191c 100%);
-      padding: 16px;
-    }
+  styles: [
+    `
+      .login-container {
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: radial-gradient(
+          circle at top,
+          #2e3136 0%,
+          #1f2124 55%,
+          #17191c 100%
+        );
+        padding: 16px;
+      }
 
-    .login-card {
-      width: 100%;
-      max-width: 400px;
-      padding: 24px;
-    }
+      .login-card {
+        width: 100%;
+        max-width: 400px;
+        padding: 24px;
+      }
 
-    mat-card-header {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      margin-bottom: 24px;
-    }
+      mat-card-header {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        margin-bottom: 24px;
+      }
 
-    mat-card-title {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      font-size: 24px;
-    }
+      mat-card-title {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 24px;
+      }
 
-    .logo {
-      width: 36px;
-      height: 36px;
-    }
+      .logo {
+        width: 36px;
+        height: 36px;
+      }
 
-    .subtitle {
-      margin: 8px 0 0;
-      font-size: 14px;
-      color: var(--app-text-muted);
-    }
+      .subtitle {
+        margin: 8px 0 0;
+        font-size: 14px;
+        color: var(--app-text-muted);
+      }
 
-    .full-width {
-      width: 100%;
-    }
+      .full-width {
+        width: 100%;
+      }
 
-    mat-form-field {
-      margin-bottom: 8px;
-    }
+      mat-form-field {
+        margin-bottom: 8px;
+      }
 
-    :host ::ng-deep .login-card .mdc-text-field--outlined {
-      background-color: var(--app-surface-elev);
-    }
+      :host ::ng-deep .login-card .mdc-text-field--outlined {
+        background-color: var(--app-surface-elev);
+      }
 
-    :host ::ng-deep .login-card .mdc-text-field__input {
-      color: var(--app-text) !important;
-      caret-color: var(--app-text);
-    }
+      :host ::ng-deep .login-card .mdc-text-field__input {
+        color: var(--app-text) !important;
+        caret-color: var(--app-text);
+      }
 
-    :host ::ng-deep .login-card .mdc-text-field__input:focus {
-      color: var(--app-text) !important;
-    }
+      :host ::ng-deep .login-card .mdc-text-field__input:focus {
+        color: var(--app-text) !important;
+      }
 
-    :host ::ng-deep .login-card input:-webkit-autofill {
-      -webkit-text-fill-color: var(--app-text);
-      box-shadow: 0 0 0px 1000px var(--app-surface-elev) inset;
-      transition: background-color 5000s ease-in-out 0s;
-    }
+      :host ::ng-deep .login-card input:-webkit-autofill {
+        -webkit-text-fill-color: var(--app-text);
+        box-shadow: 0 0 0px 1000px var(--app-surface-elev) inset;
+        transition: background-color 5000s ease-in-out 0s;
+      }
 
-    :host ::ng-deep .login-card input:-webkit-autofill:focus {
-      -webkit-text-fill-color: var(--app-text);
-      box-shadow: 0 0 0px 1000px var(--app-surface-elev) inset;
-    }
+      :host ::ng-deep .login-card input:-webkit-autofill:focus {
+        -webkit-text-fill-color: var(--app-text);
+        box-shadow: 0 0 0px 1000px var(--app-surface-elev) inset;
+      }
 
-    .remember-checkbox {
-      display: block;
-      margin-bottom: 16px;
-    }
+      .remember-checkbox {
+        display: block;
+        margin-bottom: 16px;
+      }
 
-    .login-btn {
-      height: 48px;
-      font-size: 16px;
-    }
+      .login-btn {
+        height: 48px;
+        font-size: 16px;
+      }
 
-    .login-btn mat-spinner {
-      display: inline-block;
-    }
-  `]
+      .login-btn mat-spinner {
+        display: inline-block;
+      }
+    `,
+  ],
 })
 export class LoginComponent {
   email = '';
@@ -181,7 +196,7 @@ export class LoginComponent {
   constructor(
     private supabase: SupabaseService,
     private router: Router,
-    private snackBar: MatSnackBar
+    private snackBar: MatSnackBar,
   ) {}
 
   async onSubmit() {
@@ -207,7 +222,7 @@ export class LoginComponent {
     } catch (error: any) {
       console.error('Login error:', error);
       this.snackBar.open(error.message || '登入失敗，請檢查帳號密碼', '關閉', {
-        duration: 5000
+        duration: 5000,
       });
     } finally {
       this.loading = false;

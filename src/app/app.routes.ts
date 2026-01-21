@@ -23,6 +23,10 @@ export const routes: Routes = [
       {
         path: '',
         loadComponent: () => import('./features/devices/device-list/device-list.component').then(m => m.DeviceListComponent)
+      },
+      {
+        path: 'my-borrows',
+        loadComponent: () => import('./features/my-borrows/my-borrows.component').then(m => m.MyBorrowsComponent)
       }
     ]
   },

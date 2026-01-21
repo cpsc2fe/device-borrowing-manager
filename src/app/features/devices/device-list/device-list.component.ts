@@ -10,6 +10,7 @@ import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { DeviceService, DeviceWithBorrower } from '../../../core/services/device.service';
 import { BorrowService } from '../../../core/services/borrow.service';
+import { SupabaseService } from '../../../core/services/supabase.service';
 import { QrDialogComponent } from '../../../shared/components/qr-dialog/qr-dialog.component';
 import { BorrowDialogComponent, BorrowDialogResult } from '../../../shared/components/borrow-dialog/borrow-dialog.component';
 import { ConfirmDialogComponent } from '../../../shared/components/confirm-dialog/confirm-dialog.component';
@@ -120,7 +121,7 @@ interface DeviceWithProcessing extends DeviceWithBorrower {
             </button>
             <button mat-flat-button
                     color="warn"
-                    *ngIf="device.status === 'borrowed'"
+                    *ngIf="device.status === 'borrowed' && device.borrower_email === currentUserEmail"
                     [disabled]="device.processing"
                     (click)="returnDevice(device)">
               <mat-icon>upload</mat-icon>
@@ -376,13 +377,17 @@ export class DeviceListComponent implements OnInit {
   devices: DeviceWithProcessing[] = [];
   stats = { total: 0, available: 0, borrowed: 0, maintenance: 0 };
   loading = true;
+  currentUserEmail = '';
 
   constructor(
     private deviceService: DeviceService,
     private borrowService: BorrowService,
+    private supabase: SupabaseService,
     private dialog: MatDialog,
     private snackBar: MatSnackBar
-  ) {}
+  ) {
+    this.currentUserEmail = this.supabase.currentUserValue?.email || '';
+  }
 
   async ngOnInit() {
     await this.loadDevices();
