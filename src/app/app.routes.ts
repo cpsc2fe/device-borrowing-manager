@@ -3,15 +3,22 @@ import { authGuard } from './core/guards/auth.guard';
 import { adminGuard } from './core/guards/admin.guard';
 
 export const routes: Routes = [
-  // 公開頁面：設備借用頁（QR Code 連結目標）
+  // 登入頁面（公開）
+  {
+    path: 'login',
+    loadComponent: () => import('./features/auth/login/login.component').then(m => m.LoginComponent)
+  },
+  // 設備詳情頁（需登入）
   {
     path: 'device/:id',
-    loadComponent: () => import('./features/devices/device-page/device-page.component').then(m => m.DevicePageComponent)
+    loadComponent: () => import('./features/devices/device-page/device-page.component').then(m => m.DevicePageComponent),
+    canActivate: [authGuard]
   },
-  // 公開頁面：設備列表（首頁）
+  // 設備列表首頁（需登入）
   {
     path: '',
     loadComponent: () => import('./shared/components/layout/layout.component').then(m => m.LayoutComponent),
+    canActivate: [authGuard],
     children: [
       {
         path: '',
@@ -19,12 +26,7 @@ export const routes: Routes = [
       }
     ]
   },
-  // 管理員登入
-  {
-    path: 'login',
-    loadComponent: () => import('./features/auth/login/login.component').then(m => m.LoginComponent)
-  },
-  // 管理員頁面（需要登入）
+  // 管理員頁面（需登入 + 管理員權限）
   {
     path: 'admin',
     loadComponent: () => import('./shared/components/layout/layout.component').then(m => m.LayoutComponent),
@@ -38,6 +40,10 @@ export const routes: Routes = [
       {
         path: 'devices',
         loadComponent: () => import('./features/admin/device-management/device-management.component').then(m => m.DeviceManagementComponent)
+      },
+      {
+        path: 'users',
+        loadComponent: () => import('./features/admin/user-management/user-management.component').then(m => m.UserManagementComponent)
       },
       {
         path: 'settings',

@@ -512,6 +512,128 @@ CREATE TRIGGER on_borrow_returned
     EXECUTE FUNCTION public.send_telegram_notification();
 
 -- ============================================
+-- 14. 建立用戶管理 RPC 函數
+-- ============================================
+
+-- 建立用戶（僅管理員可執行）
+-- 注意：此函數需要啟用 Supabase 的 supabase_admin 角色
+CREATE OR REPLACE FUNCTION public.create_user(
+    p_email TEXT,
+    p_password TEXT,
+    p_role TEXT DEFAULT 'user'
+)
+RETURNS JSON AS $$
+DECLARE
+    v_user_id UUID;
+BEGIN
+    -- 檢查是否為管理員
+    IF NOT public.is_admin() THEN
+        RETURN json_build_object('success', false, 'error', '權限不足');
+    END IF;
+
+    -- 檢查 email 格式
+    IF p_email IS NULL OR TRIM(p_email) = '' OR p_email NOT LIKE '%@%' THEN
+        RETURN json_build_object('success', false, 'error', '請輸入有效的 Email');
+    END IF;
+
+    -- 檢查密碼長度
+    IF p_password IS NULL OR LENGTH(p_password) < 6 THEN
+        RETURN json_build_object('success', false, 'error', '密碼至少需要 6 個字元');
+    END IF;
+
+    -- 檢查角色是否有效
+    IF p_role NOT IN ('admin', 'user') THEN
+        RETURN json_build_object('success', false, 'error', '無效的角色');
+    END IF;
+
+    -- 使用 Supabase Auth Admin API 建立用戶
+    -- 透過 auth.users 表直接插入（需要 SECURITY DEFINER 權限）
+    INSERT INTO auth.users (
+        instance_id,
+        id,
+        aud,
+        role,
+        email,
+        encrypted_password,
+        email_confirmed_at,
+        created_at,
+        updated_at,
+        confirmation_token,
+        email_change,
+        email_change_token_new,
+        recovery_token
+    )
+    VALUES (
+        '00000000-0000-0000-0000-000000000000',
+        gen_random_uuid(),
+        'authenticated',
+        'authenticated',
+        LOWER(TRIM(p_email)),
+        crypt(p_password, gen_salt('bf')),
+        NOW(),
+        NOW(),
+        NOW(),
+        '',
+        '',
+        '',
+        ''
+    )
+    RETURNING id INTO v_user_id;
+
+    -- 在 public.users 表中設定角色
+    UPDATE public.users
+    SET role = p_role
+    WHERE id = v_user_id;
+
+    RETURN json_build_object(
+        'success', true,
+        'user_id', v_user_id,
+        'message', '用戶建立成功'
+    );
+
+EXCEPTION
+    WHEN unique_violation THEN
+        RETURN json_build_object('success', false, 'error', '此 Email 已被使用');
+    WHEN OTHERS THEN
+        RETURN json_build_object('success', false, 'error', SQLERRM);
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- 刪除用戶（僅管理員可執行）
+CREATE OR REPLACE FUNCTION public.delete_user(
+    p_user_id UUID
+)
+RETURNS JSON AS $$
+BEGIN
+    -- 檢查是否為管理員
+    IF NOT public.is_admin() THEN
+        RETURN json_build_object('success', false, 'error', '權限不足');
+    END IF;
+
+    -- 不能刪除自己
+    IF p_user_id = auth.uid() THEN
+        RETURN json_build_object('success', false, 'error', '不能刪除自己的帳號');
+    END IF;
+
+    -- 刪除用戶（會自動連帶刪除 public.users 中的記錄，因為有 CASCADE）
+    DELETE FROM auth.users WHERE id = p_user_id;
+
+    IF NOT FOUND THEN
+        RETURN json_build_object('success', false, 'error', '用戶不存在');
+    END IF;
+
+    RETURN json_build_object(
+        'success', true,
+        'message', '用戶已刪除'
+    );
+
+EXCEPTION
+    WHEN OTHERS THEN
+        RETURN json_build_object('success', false, 'error', SQLERRM);
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- ============================================
 -- 完成！
 -- ============================================
 -- 執行完畢後，你應該可以在 Table Editor 看到以下資料表：

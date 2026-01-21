@@ -8,6 +8,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatIconModule } from '@angular/material/icon';
+import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { SupabaseService } from '../../../core/services/supabase.service';
 
@@ -24,6 +25,7 @@ import { SupabaseService } from '../../../core/services/supabase.service';
     MatButtonModule,
     MatProgressSpinnerModule,
     MatIconModule,
+    MatCheckboxModule,
     MatSnackBarModule
   ],
   template: `
@@ -32,7 +34,7 @@ import { SupabaseService } from '../../../core/services/supabase.service';
         <mat-card-header>
           <mat-card-title>
             <img class="logo" src="assets/images/favicon.png" alt="借機機">
-            管理員登入
+            登入
           </mat-card-title>
           <p class="subtitle">借機機</p>
         </mat-card-header>
@@ -61,6 +63,14 @@ import { SupabaseService } from '../../../core/services/supabase.service';
                      [disabled]="loading">
             </mat-form-field>
 
+            <mat-checkbox [(ngModel)]="rememberMe"
+                          name="rememberMe"
+                          color="primary"
+                          class="remember-checkbox"
+                          [disabled]="loading">
+              記住登入狀態
+            </mat-checkbox>
+
             <button mat-raised-button
                     color="primary"
                     type="submit"
@@ -70,13 +80,6 @@ import { SupabaseService } from '../../../core/services/supabase.service';
               <span *ngIf="!loading">登入</span>
             </button>
           </form>
-
-          <div class="back-link">
-            <a routerLink="/">
-              <mat-icon>arrow_back</mat-icon>
-              返回設備列表
-            </a>
-          </div>
         </mat-card-content>
       </mat-card>
     </div>
@@ -154,42 +157,25 @@ import { SupabaseService } from '../../../core/services/supabase.service';
       box-shadow: 0 0 0px 1000px var(--app-surface-elev) inset;
     }
 
+    .remember-checkbox {
+      display: block;
+      margin-bottom: 16px;
+    }
+
     .login-btn {
       height: 48px;
       font-size: 16px;
-      margin-bottom: 16px;
     }
 
     .login-btn mat-spinner {
       display: inline-block;
-    }
-
-    .back-link {
-      text-align: center;
-    }
-
-    .back-link a {
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      color: var(--app-accent);
-      text-decoration: none;
-    }
-
-    .back-link a:hover {
-      text-decoration: underline;
-    }
-
-    .back-link mat-icon {
-      font-size: 18px;
-      width: 18px;
-      height: 18px;
     }
   `]
 })
 export class LoginComponent {
   email = '';
   password = '';
+  rememberMe = true;
   loading = false;
 
   constructor(
@@ -203,18 +189,21 @@ export class LoginComponent {
 
     this.loading = true;
     try {
+      // 設定「記住我」狀態
+      this.supabase.setRememberMe(this.rememberMe);
+
       await this.supabase.signIn(this.email, this.password);
 
-      // Check if admin
+      // 檢查是否為管理員，決定導向頁面
       const isAdmin = await this.supabase.isAdmin();
-      if (!isAdmin) {
-        await this.supabase.signOut();
-        this.snackBar.open('此帳號沒有管理員權限', '關閉', { duration: 5000 });
-        return;
-      }
 
       this.snackBar.open('登入成功！', '關閉', { duration: 3000 });
-      this.router.navigate(['/admin/devices']);
+
+      if (isAdmin) {
+        this.router.navigate(['/admin/devices']);
+      } else {
+        this.router.navigate(['/']);
+      }
     } catch (error: any) {
       console.error('Login error:', error);
       this.snackBar.open(error.message || '登入失敗，請檢查帳號密碼', '關閉', {

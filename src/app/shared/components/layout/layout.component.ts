@@ -49,6 +49,10 @@ import { SupabaseService } from '../../../core/services/supabase.service';
             <mat-icon matListItemIcon>phone_android</mat-icon>
             <span matListItemTitle>設備管理</span>
           </a>
+          <a mat-list-item routerLink="/admin/users" routerLinkActive="active">
+            <mat-icon matListItemIcon>people</mat-icon>
+            <span matListItemTitle>用戶管理</span>
+          </a>
           <a mat-list-item routerLink="/admin/settings" routerLinkActive="active">
             <mat-icon matListItemIcon>settings</mat-icon>
             <span matListItemTitle>系統設定</span>
@@ -75,24 +79,17 @@ import { SupabaseService } from '../../../core/services/supabase.service';
           <span class="toolbar-title">{{ isAdmin ? pageTitle : '借機機' }}</span>
           <span class="spacer"></span>
 
-          <!-- 管理員選單 -->
-          <ng-container *ngIf="isAdmin">
-            <button mat-icon-button [matMenuTriggerFor]="userMenu">
-              <mat-icon>account_circle</mat-icon>
-            </button>
-            <mat-menu #userMenu="matMenu">
-              <div class="menu-email">{{ userEmail }}</div>
-              <button mat-menu-item (click)="logout()">
-                <mat-icon>logout</mat-icon>
-                <span>登出</span>
-              </button>
-            </mat-menu>
-          </ng-container>
-
-          <!-- 非管理員顯示管理員登入按鈕 -->
-          <button mat-icon-button *ngIf="!isAdmin" routerLink="/login" class="admin-login-btn" title="管理員登入">
-            <mat-icon>admin_panel_settings</mat-icon>
+          <!-- 用戶選單 -->
+          <button mat-icon-button [matMenuTriggerFor]="userMenu">
+            <mat-icon>account_circle</mat-icon>
           </button>
+          <mat-menu #userMenu="matMenu">
+            <div class="menu-email">{{ userEmail }}</div>
+            <button mat-menu-item (click)="logout()">
+              <mat-icon>logout</mat-icon>
+              <span>登出</span>
+            </button>
+          </mat-menu>
         </mat-toolbar>
 
         <!-- 頁面內容 -->
@@ -343,6 +340,6 @@ export class LayoutComponent implements OnInit {
 
   async logout() {
     await this.supabase.signOut();
-    this.router.navigate(['/']);
+    this.router.navigate(['/login']);
   }
 }
