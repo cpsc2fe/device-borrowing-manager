@@ -66,8 +66,13 @@ export interface BorrowDialogResult {
     </mat-dialog-actions>
   `,
   styles: [`
+    :host {
+      display: block;
+      overflow: hidden;
+    }
+
     mat-dialog-content {
-      min-width: 300px;
+      min-width: min(300px, 80vw);
       overflow: visible;
     }
 
@@ -85,16 +90,31 @@ export class BorrowDialogComponent {
   borrowerEmail = '';
   purpose = '';
 
+  private readonly STORAGE_KEY_NAME = 'borrower_name';
+  private readonly STORAGE_KEY_EMAIL = 'borrower_email';
+
   constructor(
     public dialogRef: MatDialogRef<BorrowDialogComponent>,
     @Inject(MAT_DIALOG_DATA) public data: BorrowDialogData
-  ) {}
+  ) {
+    this.borrowerName = localStorage.getItem(this.STORAGE_KEY_NAME) || '';
+    this.borrowerEmail = localStorage.getItem(this.STORAGE_KEY_EMAIL) || '';
+  }
 
   onConfirm() {
     if (this.borrowerName.trim()) {
+      const name = this.borrowerName.trim();
+      const email = this.borrowerEmail.trim() || undefined;
+
+      // 儲存到 localStorage
+      localStorage.setItem(this.STORAGE_KEY_NAME, name);
+      if (email) {
+        localStorage.setItem(this.STORAGE_KEY_EMAIL, email);
+      }
+
       const result: BorrowDialogResult = {
-        borrowerName: this.borrowerName.trim(),
-        borrowerEmail: this.borrowerEmail.trim() || undefined,
+        borrowerName: name,
+        borrowerEmail: email,
         purpose: this.purpose.trim() || undefined
       };
       this.dialogRef.close(result);

@@ -90,9 +90,8 @@ import { SupabaseService } from '../../../core/services/supabase.service';
           </ng-container>
 
           <!-- 非管理員顯示管理員登入按鈕 -->
-          <button mat-button *ngIf="!isAdmin" routerLink="/login" class="admin-login-btn">
+          <button mat-icon-button *ngIf="!isAdmin" routerLink="/login" class="admin-login-btn" title="管理員登入">
             <mat-icon>admin_panel_settings</mat-icon>
-            <span class="admin-login-text">管理員</span>
           </button>
         </mat-toolbar>
 
@@ -203,11 +202,14 @@ import { SupabaseService } from '../../../core/services/supabase.service';
       position: sticky;
       top: 0;
       z-index: 100;
+      height: 64px;
+      padding: 8px 16px;
       background: var(--app-surface-elev) !important;
     }
 
     .toolbar-title {
       margin-left: 8px;
+      font-size: 18px;
     }
 
     .spacer {
@@ -215,11 +217,11 @@ import { SupabaseService } from '../../../core/services/supabase.service';
     }
 
     .admin-login-btn {
-      color: white;
+      color: var(--app-text-muted);
     }
 
-    .admin-login-btn mat-icon {
-      margin-right: 4px;
+    .admin-login-btn:hover {
+      color: var(--app-text);
     }
 
     .main-content {
@@ -279,8 +281,18 @@ import { SupabaseService } from '../../../core/services/supabase.service';
     }
 
     @media (max-width: 600px) {
-      .admin-login-text {
-        display: none;
+      .toolbar {
+        height: 56px;
+        padding: 6px 12px;
+      }
+
+      .toolbar-title {
+        font-size: 16px;
+      }
+
+      .logo-small {
+        width: 20px;
+        height: 20px;
       }
     }
 

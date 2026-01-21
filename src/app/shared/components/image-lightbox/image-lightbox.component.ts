@@ -14,28 +14,29 @@ export interface ImageLightboxData {
   standalone: true,
   imports: [CommonModule, MatDialogModule, MatButtonModule, MatIconModule],
   template: `
+    <button mat-icon-button class="close-btn" (click)="close()">
+      <mat-icon>close</mat-icon>
+    </button>
     <div class="lightbox">
-      <button mat-icon-button class="close-btn" (click)="close()">
-        <mat-icon>close</mat-icon>
-      </button>
       <img [src]="data.imageUrl" [alt]="data.title || 'image'">
       <div class="caption" *ngIf="data.title">{{ data.title }}</div>
     </div>
   `,
   styles: [`
-    .lightbox {
+    :host {
+      display: block;
       position: relative;
-      padding: 16px;
-      text-align: center;
+      overflow: hidden;
     }
 
     .close-btn {
       position: absolute;
       top: 8px;
       right: 8px;
-      width: 36px;
-      height: 36px;
-      border-radius: 0;
+      width: 32px;
+      height: 32px;
+      min-width: 32px;
+      border-radius: 3px;
       background: var(--app-surface);
       color: var(--app-text);
       border: 1px solid var(--app-border);
@@ -43,12 +44,13 @@ export interface ImageLightboxData {
       align-items: center;
       justify-content: center;
       padding: 0;
+      z-index: 1;
     }
 
     .close-btn mat-icon {
-      font-size: 20px;
-      width: 20px;
-      height: 20px;
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
     }
 
     .close-btn:hover {
@@ -62,9 +64,15 @@ export interface ImageLightboxData {
       background: transparent !important;
     }
 
+    .lightbox {
+      padding: 16px;
+      padding-top: 48px;
+      text-align: center;
+    }
+
     img {
-      max-width: min(90vw, 960px);
-      max-height: 80vh;
+      max-width: 100%;
+      max-height: 75vh;
       width: auto;
       height: auto;
       border-radius: 3px;
@@ -77,6 +85,18 @@ export interface ImageLightboxData {
       margin-top: 12px;
       color: var(--app-text-muted);
       font-size: 14px;
+    }
+
+    @media (max-width: 600px) {
+      .lightbox {
+        padding: 12px;
+        padding-top: 44px;
+      }
+
+      .close-btn {
+        top: 6px;
+        right: 6px;
+      }
     }
   `]
 })

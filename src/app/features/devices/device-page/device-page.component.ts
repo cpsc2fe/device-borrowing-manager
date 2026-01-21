@@ -365,6 +365,9 @@ export class DevicePageComponent implements OnInit {
   borrowerEmail = '';
   purpose = '';
 
+  private readonly STORAGE_KEY_NAME = 'borrower_name';
+  private readonly STORAGE_KEY_EMAIL = 'borrower_email';
+
   constructor(
     private route: ActivatedRoute,
     private deviceService: DeviceService,
@@ -372,7 +375,10 @@ export class DevicePageComponent implements OnInit {
     private snackBar: MatSnackBar,
     private dialog: MatDialog,
     private router: Router
-  ) {}
+  ) {
+    this.borrowerName = localStorage.getItem(this.STORAGE_KEY_NAME) || '';
+    this.borrowerEmail = localStorage.getItem(this.STORAGE_KEY_EMAIL) || '';
+  }
 
   ngOnInit() {
     const deviceId = this.route.snapshot.paramMap.get('id');
@@ -403,22 +409,29 @@ export class DevicePageComponent implements OnInit {
   async borrowDevice() {
     if (!this.device || !this.borrowerName.trim()) return;
 
+    const name = this.borrowerName.trim();
+    const email = this.borrowerEmail.trim() || undefined;
+
     this.processing = true;
     try {
       const result = await this.borrowService.borrowDevice(
         this.device.id,
-        this.borrowerName.trim(),
-        this.borrowerEmail.trim() || undefined,
+        name,
+        email,
         this.purpose.trim() || undefined
       );
 
       if (result.success) {
+        // 儲存到 localStorage
+        localStorage.setItem(this.STORAGE_KEY_NAME, name);
+        if (email) {
+          localStorage.setItem(this.STORAGE_KEY_EMAIL, email);
+        }
+
         this.snackBar.open('借用成功！', '關閉', { duration: 3000 });
         // Telegram 通知由資料庫 trigger 自動處理
         await this.loadDevice(this.device.id);
-        // Clear form
-        this.borrowerName = '';
-        this.borrowerEmail = '';
+        // 只清除用途，保留姓名和 email
         this.purpose = '';
       } else {
         this.snackBar.open(result.error || '借用失敗', '關閉', { duration: 5000 });
