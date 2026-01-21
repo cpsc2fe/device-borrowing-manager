@@ -13,6 +13,7 @@ import { BorrowService } from '../../../core/services/borrow.service';
 import { QrDialogComponent } from '../../../shared/components/qr-dialog/qr-dialog.component';
 import { BorrowDialogComponent, BorrowDialogResult } from '../../../shared/components/borrow-dialog/borrow-dialog.component';
 import { ConfirmDialogComponent } from '../../../shared/components/confirm-dialog/confirm-dialog.component';
+import { ReturnConfirmDialogComponent } from '../../../shared/components/return-confirm-dialog/return-confirm-dialog.component';
 import { ImageLightboxComponent } from '../../../shared/components/image-lightbox/image-lightbox.component';
 
 interface DeviceWithProcessing extends DeviceWithBorrower {
@@ -459,13 +460,10 @@ export class DeviceListComponent implements OnInit {
   }
 
   returnDevice(device: DeviceWithProcessing) {
-    const dialogRef = this.dialog.open(ConfirmDialogComponent, {
-      width: '320px',
+    const dialogRef = this.dialog.open(ReturnConfirmDialogComponent, {
+      width: '400px',
       data: {
-        title: '確認歸還',
-        message: `確定要歸還「${device.name}」嗎？`,
-        confirmText: '確認歸還',
-        cancelText: '取消'
+        deviceName: device.name
       }
     });
 

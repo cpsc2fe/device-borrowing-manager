@@ -13,6 +13,7 @@ import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { DeviceService, DeviceWithBorrower } from '../../../core/services/device.service';
 import { BorrowService } from '../../../core/services/borrow.service';
 import { ConfirmDialogComponent } from '../../../shared/components/confirm-dialog/confirm-dialog.component';
+import { ReturnConfirmDialogComponent } from '../../../shared/components/return-confirm-dialog/return-confirm-dialog.component';
 import { ImageLightboxComponent } from '../../../shared/components/image-lightbox/image-lightbox.component';
 
 @Component({
@@ -447,13 +448,10 @@ export class DevicePageComponent implements OnInit {
   async returnDevice() {
     if (!this.device || !this.device.active_borrow_id) return;
 
-    const dialogRef = this.dialog.open(ConfirmDialogComponent, {
-      width: '320px',
+    const dialogRef = this.dialog.open(ReturnConfirmDialogComponent, {
+      width: '400px',
       data: {
-        title: '確認歸還',
-        message: `確定要歸還「${this.device.name}」嗎？`,
-        confirmText: '確認歸還',
-        cancelText: '取消'
+        deviceName: this.device.name
       }
     });
 
