@@ -32,7 +32,7 @@ interface TelegramConfig {
     MatSlideToggleModule,
     MatIconModule,
     MatProgressSpinnerModule,
-    MatSnackBarModule
+    MatSnackBarModule,
   ],
   template: `
     <div class="settings-container">
@@ -61,44 +61,59 @@ interface TelegramConfig {
 
           <mat-form-field appearance="outline" class="full-width">
             <mat-label>Bot Token</mat-label>
-            <input matInput
-                   [(ngModel)]="config.bot_token"
-                   placeholder="123456789:ABCdefGHIjklMNOpqrSTUvwxYZ"
-                   [disabled]="!config.is_enabled">
+            <input
+              matInput
+              [(ngModel)]="config.bot_token"
+              placeholder="123456789:ABCdefGHIjklMNOpqrSTUvwxYZ"
+              [disabled]="!config.is_enabled"
+            />
             <mat-hint>從 BotFather 取得</mat-hint>
           </mat-form-field>
 
           <mat-form-field appearance="outline" class="full-width">
             <mat-label>群組 Chat ID</mat-label>
-            <input matInput
-                   [(ngModel)]="config.chat_id"
-                   placeholder="-1001234567890"
-                   [disabled]="!config.is_enabled">
+            <input
+              matInput
+              [(ngModel)]="config.chat_id"
+              placeholder="-1001234567890"
+              [disabled]="!config.is_enabled"
+            />
             <mat-hint>群組 ID 是負數開頭</mat-hint>
           </mat-form-field>
 
           <mat-form-field appearance="outline" class="full-width">
             <mat-label>話題 Thread ID（選填）</mat-label>
-            <input matInput
-                   [(ngModel)]="config.thread_id"
-                   placeholder="123"
-                   [disabled]="!config.is_enabled">
+            <input
+              matInput
+              [(ngModel)]="config.thread_id"
+              placeholder="123"
+              [disabled]="!config.is_enabled"
+            />
             <mat-hint>如果群組有開啟話題功能</mat-hint>
           </mat-form-field>
         </mat-card-content>
 
         <mat-card-actions>
-          <button mat-button
-                  class="test-button"
-                  (click)="testNotification()"
-                  [disabled]="testing || !config.is_enabled || !config.bot_token || !config.chat_id">
+          <button
+            mat-button
+            class="test-button"
+            (click)="testNotification()"
+            [disabled]="
+              testing ||
+              !config.is_enabled ||
+              !config.bot_token ||
+              !config.chat_id
+            "
+          >
             <mat-spinner diameter="18" *ngIf="testing"></mat-spinner>
             <span *ngIf="!testing">測試通知</span>
           </button>
-          <button mat-raised-button
-                  color="primary"
-                  (click)="saveSettings()"
-                  [disabled]="saving">
+          <button
+            mat-raised-button
+            color="primary"
+            (click)="saveSettings()"
+            [disabled]="saving"
+          >
             <mat-spinner diameter="18" *ngIf="saving"></mat-spinner>
             <span *ngIf="!saving">儲存設定</span>
           </button>
@@ -122,104 +137,102 @@ interface TelegramConfig {
             <li>使用 userinfobot 取得群組 Chat ID</li>
             <li>儲存設定並測試通知</li>
           </ol>
-          <p>
-            詳細教學請參考
-            <a href="./TELEGRAM_SETUP.md" target="_blank">TELEGRAM_SETUP.md</a>
-          </p>
         </mat-card-content>
       </mat-card>
     </div>
   `,
-  styles: [`
-    .settings-container {
-      max-width: 600px;
-      margin: 0 auto;
-    }
+  styles: [
+    `
+      .settings-container {
+        max-width: 600px;
+        margin: 0 auto;
+      }
 
-    h1 {
-      margin-bottom: 24px;
-      font-size: 24px;
-    }
+      h1 {
+        margin-bottom: 24px;
+        font-size: 24px;
+      }
 
-    .loading {
-      display: flex;
-      justify-content: center;
-      padding: 48px;
-    }
+      .loading {
+        display: flex;
+        justify-content: center;
+        padding: 48px;
+      }
 
-    mat-card {
-      margin-bottom: 24px;
-      box-shadow: none;
-      border: 1px solid var(--app-border);
-      background: var(--app-surface);
-      border-radius: 3px;
-    }
+      mat-card {
+        margin-bottom: 24px;
+        box-shadow: none;
+        border: 1px solid var(--app-border);
+        background: var(--app-surface);
+        border-radius: 3px;
+      }
 
-    mat-card-header {
-      margin-bottom: 16px;
-    }
+      mat-card-header {
+        margin-bottom: 16px;
+      }
 
-    mat-card-title {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
+      mat-card-title {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
 
-    .toggle-row {
-      margin-bottom: 24px;
-    }
+      .toggle-row {
+        margin-bottom: 24px;
+      }
 
-    .full-width {
-      width: 100%;
-      margin-bottom: 8px;
-    }
+      .full-width {
+        width: 100%;
+        margin-bottom: 8px;
+      }
 
-    mat-card-actions {
-      display: flex;
-      gap: 8px;
-      justify-content: flex-end;
-      border-top: 1px solid var(--app-border);
-      padding-top: 12px;
-    }
+      mat-card-actions {
+        display: flex;
+        gap: 8px;
+        justify-content: flex-end;
+        border-top: 1px solid var(--app-border);
+        padding-top: 12px;
+      }
 
-    .test-button {
-      color: var(--app-text);
-    }
+      .test-button {
+        color: var(--app-text);
+      }
 
-    mat-card-actions button mat-spinner {
-      display: inline-block;
-      margin-right: 8px;
-    }
+      mat-card-actions button mat-spinner {
+        display: inline-block;
+        margin-right: 8px;
+      }
 
-    .help-card {
-      background: var(--app-surface);
-    }
+      .help-card {
+        background: var(--app-surface);
+      }
 
-    .help-card ol {
-      margin: 0;
-      padding-left: 20px;
-    }
+      .help-card ol {
+        margin: 0;
+        padding-left: 20px;
+      }
 
-    .help-card li {
-      margin-bottom: 8px;
-    }
+      .help-card li {
+        margin-bottom: 8px;
+      }
 
-    .help-card code {
-      background: var(--app-surface-elev);
-      padding: 2px 6px;
-      border-radius: 3px;
-      font-family: monospace;
-    }
+      .help-card code {
+        background: var(--app-surface-elev);
+        padding: 2px 6px;
+        border-radius: 3px;
+        font-family: monospace;
+      }
 
-    .help-card p {
-      margin-top: 16px;
-      margin-bottom: 0;
-    }
+      .help-card p {
+        margin-top: 16px;
+        margin-bottom: 0;
+      }
 
-    .help-card a {
-      color: var(--app-accent);
-    }
-  `]
+      .help-card a {
+        color: var(--app-accent);
+      }
+    `,
+  ],
 })
 export class SettingsComponent implements OnInit {
   config: TelegramConfig = {
@@ -227,7 +240,7 @@ export class SettingsComponent implements OnInit {
     bot_token: '',
     chat_id: '',
     thread_id: '',
-    is_enabled: false
+    is_enabled: false,
   };
   loading = true;
   saving = false;
@@ -235,7 +248,7 @@ export class SettingsComponent implements OnInit {
 
   constructor(
     private supabase: SupabaseService,
-    private snackBar: MatSnackBar
+    private snackBar: MatSnackBar,
   ) {}
 
   async ngOnInit() {
@@ -289,7 +302,7 @@ export class SettingsComponent implements OnInit {
             bot_token: this.config.bot_token || null,
             chat_id: this.config.chat_id || null,
             thread_id: this.config.thread_id || null,
-            is_enabled: this.config.is_enabled
+            is_enabled: this.config.is_enabled,
           })
           .select('id')
           .single();
@@ -306,7 +319,7 @@ export class SettingsComponent implements OnInit {
           bot_token: this.config.bot_token || null,
           chat_id: this.config.chat_id || null,
           thread_id: this.config.thread_id || null,
-          is_enabled: this.config.is_enabled
+          is_enabled: this.config.is_enabled,
         })
         .eq('id', this.config.id);
 
@@ -315,7 +328,9 @@ export class SettingsComponent implements OnInit {
       this.snackBar.open('設定已儲存', '關閉', { duration: 3000 });
     } catch (error: any) {
       console.error('Save error:', error);
-      this.snackBar.open(error.message || '儲存失敗', '關閉', { duration: 5000 });
+      this.snackBar.open(error.message || '儲存失敗', '關閉', {
+        duration: 5000,
+      });
     } finally {
       this.saving = false;
     }
@@ -323,7 +338,9 @@ export class SettingsComponent implements OnInit {
 
   async testNotification() {
     if (!this.config.bot_token || !this.config.chat_id) {
-      this.snackBar.open('請先填寫 Bot Token 和 Chat ID', '關閉', { duration: 3000 });
+      this.snackBar.open('請先填寫 Bot Token 和 Chat ID', '關閉', {
+        duration: 3000,
+      });
       return;
     }
 
@@ -333,7 +350,7 @@ export class SettingsComponent implements OnInit {
 
       const payload: any = {
         chat_id: this.config.chat_id,
-        text: message
+        text: message,
       };
 
       if (this.config.thread_id) {
@@ -345,8 +362,8 @@ export class SettingsComponent implements OnInit {
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        }
+          body: JSON.stringify(payload),
+        },
       );
 
       const result = await response.json();
@@ -358,7 +375,9 @@ export class SettingsComponent implements OnInit {
       }
     } catch (error: any) {
       console.error('Test error:', error);
-      this.snackBar.open(error.message || '測試失敗', '關閉', { duration: 5000 });
+      this.snackBar.open(error.message || '測試失敗', '關閉', {
+        duration: 5000,
+      });
     } finally {
       this.testing = false;
     }
