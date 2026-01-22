@@ -1,8 +1,11 @@
 import { inject } from '@angular/core';
-import { Router, CanActivateFn } from '@angular/router';
+import { Router, CanActivateFn, ActivatedRouteSnapshot, RouterStateSnapshot } from '@angular/router';
 import { SupabaseService } from '../services/supabase.service';
 
-export const authGuard: CanActivateFn = async () => {
+export const authGuard: CanActivateFn = async (
+  _route: ActivatedRouteSnapshot,
+  state: RouterStateSnapshot
+) => {
   const supabase = inject(SupabaseService);
   const router = inject(Router);
 
@@ -19,6 +22,9 @@ export const authGuard: CanActivateFn = async () => {
     return true;
   }
 
-  router.navigate(['/login']);
+  // 保存原始 URL，登入後可以返回
+  router.navigate(['/login'], {
+    queryParams: { returnUrl: state.url }
+  });
   return false;
 };

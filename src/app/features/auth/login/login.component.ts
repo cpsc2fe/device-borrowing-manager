@@ -1,7 +1,7 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router, RouterModule } from '@angular/router';
+import { Router, RouterModule, ActivatedRoute } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
@@ -196,6 +196,7 @@ export class LoginComponent {
   constructor(
     private supabase: SupabaseService,
     private router: Router,
+    private route: ActivatedRoute,
     private snackBar: MatSnackBar,
   ) {}
 
@@ -214,7 +215,11 @@ export class LoginComponent {
 
       this.snackBar.open('登入成功！', '關閉', { duration: 3000 });
 
-      if (isAdmin) {
+      // 檢查是否有 returnUrl，有的話導向該頁面
+      const returnUrl = this.route.snapshot.queryParams['returnUrl'];
+      if (returnUrl) {
+        this.router.navigateByUrl(returnUrl);
+      } else if (isAdmin) {
         this.router.navigate(['/admin/devices']);
       } else {
         this.router.navigate(['/']);
