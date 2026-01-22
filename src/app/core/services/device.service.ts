@@ -9,6 +9,7 @@ export interface Device {
   os: string | null;
   os_version: string | null;
   image_url: string | null;
+  screen_password?: string | null; // 僅管理員可見
   status: 'available' | 'borrowed' | 'maintenance';
   notes: string | null;
   created_at: string;
@@ -50,6 +51,18 @@ export class DeviceService {
 
     if (error) throw error;
     return data as DeviceWithBorrower;
+  }
+
+  // 取得單一設備（管理員專用，含 screen_password）
+  async getDeviceForAdmin(id: string): Promise<Device | null> {
+    const { data, error } = await this.supabase.client
+      .from('devices')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (error) throw error;
+    return data as Device;
   }
 
   // 新增設備

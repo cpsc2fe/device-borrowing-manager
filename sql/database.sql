@@ -29,6 +29,7 @@ CREATE TABLE IF NOT EXISTS public.devices (
     os TEXT,
     os_version TEXT,
     image_url TEXT,
+    screen_password TEXT,
     status TEXT NOT NULL DEFAULT 'available' CHECK (status IN ('available', 'borrowed', 'maintenance')),
     notes TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
@@ -239,10 +240,21 @@ CREATE TRIGGER update_telegram_config_updated_at
 -- 8. 建立 View：設備詳情（含借用者資訊）
 -- ============================================
 
+-- View 不包含 screen_password，一般用戶透過此 View 讀取
 DROP VIEW IF EXISTS public.devices_with_borrower;
 CREATE VIEW public.devices_with_borrower AS
 SELECT
-    d.*,
+    d.id,
+    d.name,
+    d.brand,
+    d.model,
+    d.os,
+    d.os_version,
+    d.image_url,
+    d.status,
+    d.notes,
+    d.created_at,
+    d.updated_at,
     b.id AS active_borrow_id,
     b.borrower_name,
     b.borrower_email,
@@ -432,6 +444,9 @@ BEGIN
         v_message := v_message || '借用者：' || v_borrower_display || E'\n';
         IF NEW.purpose IS NOT NULL AND NEW.purpose != '' THEN
             v_message := v_message || '用途：' || NEW.purpose || E'\n';
+        END IF;
+        IF v_device.screen_password IS NOT NULL AND v_device.screen_password != '' THEN
+            v_message := v_message || '螢幕密碼：' || v_device.screen_password || E'\n';
         END IF;
         v_message := v_message || '時間：' || v_now;
 
@@ -632,6 +647,14 @@ EXCEPTION
         RETURN json_build_object('success', false, 'error', SQLERRM);
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- ============================================
+-- 15. 新增螢幕解鎖密碼欄位（若不存在）
+-- ============================================
+
+-- 新增欄位到 devices 表
+ALTER TABLE public.devices ADD COLUMN IF NOT EXISTS screen_password TEXT;
+
 
 -- ============================================
 -- 完成！

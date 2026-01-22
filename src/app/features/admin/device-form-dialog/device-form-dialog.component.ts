@@ -98,14 +98,25 @@ import { DeviceService, Device } from '../../../core/services/device.service';
           </mat-form-field>
         </div>
 
-        <mat-form-field appearance="outline" class="full-width">
-          <mat-label>狀態</mat-label>
-          <mat-select [(ngModel)]="formData.status" name="status" required>
-            <mat-option value="available">🟢 可借用</mat-option>
-            <mat-option value="borrowed">🔴 已借出</mat-option>
-            <mat-option value="maintenance">🟡 維修中</mat-option>
-          </mat-select>
-        </mat-form-field>
+        <div class="form-row">
+          <mat-form-field appearance="outline">
+            <mat-label>狀態</mat-label>
+            <mat-select [(ngModel)]="formData.status" name="status" required>
+              <mat-option value="available">🟢 可借用</mat-option>
+              <mat-option value="borrowed">🔴 已借出</mat-option>
+              <mat-option value="maintenance">🟡 維修中</mat-option>
+            </mat-select>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>螢幕解鎖密碼</mat-label>
+            <input matInput
+                   [(ngModel)]="formData.screen_password"
+                   name="screen_password"
+                   placeholder="例：821209">
+            <mat-hint>借用時會透過 Telegram 通知</mat-hint>
+          </mat-form-field>
+        </div>
 
         <mat-form-field appearance="outline" class="full-width">
           <mat-label>備註</mat-label>
@@ -212,12 +223,14 @@ export class DeviceFormDialogComponent {
     os: '',
     os_version: '',
     status: 'available',
+    screen_password: '',
     notes: '',
     image_url: null
   };
   imagePreview: string | null = null;
   selectedFile: File | null = null;
   saving = false;
+  loading = false;
 
   constructor(
     public dialogRef: MatDialogRef<DeviceFormDialogComponent>,
@@ -226,7 +239,8 @@ export class DeviceFormDialogComponent {
     private snackBar: MatSnackBar
   ) {
     if (data.mode === 'edit' && data.device) {
-      // 只複製 Device 介面的欄位，排除 DeviceWithBorrower 的額外欄位
+      this.loadDeviceData(data.device.id);
+      // 先用傳入的資料顯示
       this.formData = {
         name: data.device.name,
         brand: data.device.brand,
@@ -234,10 +248,37 @@ export class DeviceFormDialogComponent {
         os: data.device.os,
         os_version: data.device.os_version,
         status: data.device.status,
+        screen_password: data.device.screen_password || '',
         notes: data.device.notes,
         image_url: data.device.image_url
       };
       this.imagePreview = data.device.image_url;
+    }
+  }
+
+  async loadDeviceData(id: string) {
+    this.loading = true;
+    try {
+      // 從 devices 表直接讀取（含 screen_password）
+      const device = await this.deviceService.getDeviceForAdmin(id);
+      if (device) {
+        this.formData = {
+          name: device.name,
+          brand: device.brand,
+          model: device.model,
+          os: device.os,
+          os_version: device.os_version,
+          status: device.status,
+          screen_password: device.screen_password || '',
+          notes: device.notes,
+          image_url: device.image_url
+        };
+        this.imagePreview = device.image_url;
+      }
+    } catch (error) {
+      console.error('Error loading device:', error);
+    } finally {
+      this.loading = false;
     }
   }
 
