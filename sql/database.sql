@@ -120,12 +120,14 @@ USING (public.is_admin());
 
 -- ----- devices 資料表 -----
 
--- 任何人（包含匿名）可以讀取設備列表
+-- 只有管理員可以直接讀取 devices 表（含 screen_password）
+-- 一般用戶透過 devices_with_borrower View 讀取（不含 screen_password）
 DROP POLICY IF EXISTS "Anyone can read devices" ON public.devices;
-CREATE POLICY "Anyone can read devices"
+DROP POLICY IF EXISTS "Admin can read devices" ON public.devices;
+CREATE POLICY "Admin can read devices"
 ON public.devices FOR SELECT
-TO anon, authenticated
-USING (true);
+TO authenticated
+USING (public.is_admin());
 
 -- 只有管理員可以新增設備
 DROP POLICY IF EXISTS "Admin can insert devices" ON public.devices;
@@ -157,19 +159,10 @@ ON public.borrows FOR SELECT
 TO anon, authenticated
 USING (true);
 
--- 任何人可以建立借用記錄（透過 RPC 函數）
+-- 不開放直接 INSERT / UPDATE：借用與歸還只能透過
+-- borrow_device / return_device RPC（SECURITY DEFINER，不受 RLS 限制）
 DROP POLICY IF EXISTS "Anyone can create borrows" ON public.borrows;
-CREATE POLICY "Anyone can create borrows"
-ON public.borrows FOR INSERT
-TO anon, authenticated
-WITH CHECK (true);
-
--- 任何人可以更新借用記錄（用於歸還，透過 RPC 函數）
 DROP POLICY IF EXISTS "Anyone can update borrows" ON public.borrows;
-CREATE POLICY "Anyone can update borrows"
-ON public.borrows FOR UPDATE
-TO anon, authenticated
-USING (true);
 
 -- 管理員可以刪除借用記錄
 DROP POLICY IF EXISTS "Admin can delete borrows" ON public.borrows;
@@ -241,6 +234,7 @@ CREATE TRIGGER update_telegram_config_updated_at
 -- ============================================
 
 -- View 不包含 screen_password，一般用戶透過此 View 讀取
+-- 注意：不可設定 security_invoker，View 需以 owner 權限繞過 devices 的 admin-only RLS
 DROP VIEW IF EXISTS public.devices_with_borrower;
 CREATE VIEW public.devices_with_borrower AS
 SELECT

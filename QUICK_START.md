@@ -93,7 +93,6 @@ npm install
 1. 複製環境變數範本：
 ```bash
 cp src/environments/environment.example.ts src/environments/environment.ts
-cp src/environments/environment.example.ts src/environments/environment.prod.ts
 ```
 
 2. 編輯 `src/environments/environment.ts`：
@@ -104,8 +103,6 @@ export const environment = {
   supabaseKey: 'eyJhbGciOiJIUzI1NiIs...'         // 貼上你的 anon public key
 };
 ```
-
-3. 同樣編輯 `environment.prod.ts`（用於生產環境）
 
 ### 3.4 啟動開發伺服器
 ```bash
@@ -198,8 +195,7 @@ device-borrowing-manager/
 │   │   ├── app.component.ts
 │   │   └── app.routes.ts
 │   ├── environments/
-│   │   ├── environment.ts        # 開發環境
-│   │   └── environment.prod.ts   # 生產環境
+│   │   └── environment.ts        # Supabase 設定（開發與部署共用）
 │   └── styles.css
 ├── sql/
 │   └── database.sql              # 資料庫 Schema（含 Telegram Trigger）

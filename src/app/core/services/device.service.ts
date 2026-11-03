@@ -134,7 +134,7 @@ export class DeviceService {
   // 取得設備統計
   async getStats(): Promise<{ total: number; available: number; borrowed: number; maintenance: number }> {
     const { data, error } = await this.supabase.client
-      .from('devices')
+      .from('devices_with_borrower')
       .select('status');
 
     if (error) throw error;
