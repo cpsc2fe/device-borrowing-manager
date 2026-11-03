@@ -73,6 +73,10 @@ CREATE INDEX IF NOT EXISTS idx_borrows_device_id ON public.borrows(device_id);
 CREATE INDEX IF NOT EXISTS idx_borrows_status ON public.borrows(status);
 CREATE INDEX IF NOT EXISTS idx_borrows_borrower_name ON public.borrows(borrower_name);
 
+-- 每台設備最多一筆 active 借用
+CREATE UNIQUE INDEX IF NOT EXISTS uniq_borrows_active_device
+ON public.borrows(device_id) WHERE status = 'active';
+
 -- ============================================
 -- 3. 啟用 Row Level Security (RLS)
 -- ============================================
@@ -230,6 +234,27 @@ CREATE TRIGGER update_telegram_config_updated_at
     BEFORE UPDATE ON public.telegram_config
     FOR EACH ROW EXECUTE FUNCTION public.update_updated_at();
 
+-- 管理員手動把設備從 borrowed 改成其他狀態時，自動結束 active 借用
+-- （會觸發 on_borrow_returned，照常發出歸還通知）
+CREATE OR REPLACE FUNCTION public.close_active_borrow()
+RETURNS TRIGGER AS $$
+BEGIN
+    UPDATE public.borrows
+    SET status = 'returned', returned_at = NOW()
+    WHERE device_id = NEW.id AND status = 'active';
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+REVOKE EXECUTE ON FUNCTION public.close_active_borrow() FROM PUBLIC, anon, authenticated;
+
+DROP TRIGGER IF EXISTS close_active_borrow_on_status_change ON public.devices;
+CREATE TRIGGER close_active_borrow_on_status_change
+    AFTER UPDATE OF status ON public.devices
+    FOR EACH ROW
+    WHEN (OLD.status = 'borrowed' AND NEW.status <> 'borrowed')
+    EXECUTE FUNCTION public.close_active_borrow();
+
 -- ============================================
 -- 8. 建立 View：設備詳情（含借用者資訊）
 -- ============================================
@@ -340,15 +365,15 @@ BEGIN
         RETURN json_build_object('success', false, 'error', '此設備已歸還');
     END IF;
 
-    -- 更新設備狀態
-    UPDATE public.devices
-    SET status = 'available'
-    WHERE id = v_device_id;
-
-    -- 更新借用記錄
+    -- 先更新借用記錄，再更新設備狀態
+    -- （順序反過來的話，devices 的 close_active_borrow trigger 會先結束這筆借用）
     UPDATE public.borrows
     SET status = 'returned', returned_at = NOW()
     WHERE id = p_borrow_id;
+
+    UPDATE public.devices
+    SET status = 'available'
+    WHERE id = v_device_id;
 
     RETURN json_build_object(
         'success', true,
