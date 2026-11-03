@@ -392,25 +392,75 @@ CREATE EXTENSION IF NOT EXISTS pg_net WITH SCHEMA extensions;
 -- 13. 建立 Telegram 通知函數與觸發器
 -- ============================================
 
+-- 內部函數：所有設備目前狀態（借還通知與「發送借用狀況」共用）
+CREATE OR REPLACE FUNCTION public._device_status_text()
+RETURNS TEXT AS $$
+DECLARE
+    v_text TEXT := E'\n\n📊 目前狀態：';
+    v_row RECORD;
+BEGIN
+    FOR v_row IN
+        SELECT d.name, d.status, b.borrower_name AS current_borrower
+        FROM public.devices d
+        LEFT JOIN public.borrows b ON d.id = b.device_id AND b.status = 'active'
+        ORDER BY d.name
+    LOOP
+        IF v_row.status = 'available' THEN
+            v_text := v_text || E'\n' || '🟢 ' || v_row.name || ' - 可借用';
+        ELSIF v_row.status = 'borrowed' THEN
+            v_text := v_text || E'\n' || '🔴 ' || v_row.name || ' - ' || COALESCE(v_row.current_borrower, '未知');
+        ELSIF v_row.status = 'maintenance' THEN
+            v_text := v_text || E'\n' || '🟡 ' || v_row.name || ' - 維修中';
+        END IF;
+    END LOOP;
+
+    RETURN v_text || E'\n\n🌐 系統連結：https://cpsc2fe.github.io/device-borrowing-manager/';
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- 內部函數：發送 Telegram 訊息；未啟用或設定不完整時回傳 false
+CREATE OR REPLACE FUNCTION public._telegram_post(p_text TEXT)
+RETURNS BOOLEAN AS $$
+DECLARE
+    v_config RECORD;
+    v_payload JSONB;
+BEGIN
+    SELECT * INTO v_config FROM public.telegram_config ORDER BY updated_at DESC LIMIT 1;
+
+    IF v_config IS NULL OR NOT v_config.is_enabled OR v_config.bot_token IS NULL OR v_config.chat_id IS NULL THEN
+        RETURN FALSE;
+    END IF;
+
+    v_payload := jsonb_build_object('chat_id', v_config.chat_id, 'text', p_text);
+
+    IF v_config.thread_id IS NOT NULL AND v_config.thread_id != '' THEN
+        v_payload := v_payload || jsonb_build_object('message_thread_id', v_config.thread_id::INTEGER);
+    END IF;
+
+    -- pg_net 為非同步，這裡只代表請求已送出
+    PERFORM net.http_post(
+        url := 'https://api.telegram.org/bot' || v_config.bot_token || '/sendMessage',
+        headers := '{"Content-Type": "application/json"}'::JSONB,
+        body := v_payload
+    );
+    RETURN TRUE;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- 內部函數不可經由 API 直接呼叫（否則任何人都能對群組發任意訊息）
+REVOKE EXECUTE ON FUNCTION public._device_status_text() FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public._telegram_post(TEXT) FROM PUBLIC, anon, authenticated;
+
 -- 發送 Telegram 通知的函數
 CREATE OR REPLACE FUNCTION public.send_telegram_notification()
 RETURNS TRIGGER AS $$
 DECLARE
-    v_config RECORD;
     v_device RECORD;
     v_message TEXT;
-    v_payload JSONB;
-    v_all_devices RECORD;
     v_borrower_display TEXT;
     v_now TEXT;
 BEGIN
-    -- 取得 Telegram 設定
-    SELECT * INTO v_config FROM public.telegram_config LIMIT 1;
-
-    -- 如果未啟用或缺少設定，直接返回
-    IF v_config IS NULL OR NOT v_config.is_enabled OR v_config.bot_token IS NULL OR v_config.chat_id IS NULL THEN
-        RETURN COALESCE(NEW, OLD);
-    END IF;
+    -- Telegram 設定檢查由 _telegram_post 處理
 
     -- 取得設備資訊
     SELECT * INTO v_device FROM public.devices WHERE id = COALESCE(NEW.device_id, OLD.device_id);
@@ -456,43 +506,7 @@ BEGIN
         RETURN COALESCE(NEW, OLD);
     END IF;
 
-    -- 取得所有設備狀態
-    v_message := v_message || E'\n\n📊 目前狀態：';
-
-    FOR v_all_devices IN
-        SELECT d.name, d.status, b.borrower_name as current_borrower
-        FROM public.devices d
-        LEFT JOIN public.borrows b ON d.id = b.device_id AND b.status = 'active'
-        ORDER BY d.name
-    LOOP
-        IF v_all_devices.status = 'available' THEN
-            v_message := v_message || E'\n' || '🟢 ' || v_all_devices.name || ' - 可借用';
-        ELSIF v_all_devices.status = 'borrowed' THEN
-            v_message := v_message || E'\n' || '🔴 ' || v_all_devices.name || ' - ' || COALESCE(v_all_devices.current_borrower, '未知');
-        ELSIF v_all_devices.status = 'maintenance' THEN
-            v_message := v_message || E'\n' || '🟡 ' || v_all_devices.name || ' - 維修中';
-        END IF;
-    END LOOP;
-
-    v_message := v_message || E'\n\n🌐 系統連結：https://cpsc2fe.github.io/device-borrowing-manager/';
-
-    -- 建立 Telegram API payload
-    v_payload := jsonb_build_object(
-        'chat_id', v_config.chat_id,
-        'text', v_message
-    );
-
-    -- 如果有 thread_id，加入 payload
-    IF v_config.thread_id IS NOT NULL AND v_config.thread_id != '' THEN
-        v_payload := v_payload || jsonb_build_object('message_thread_id', v_config.thread_id::INTEGER);
-    END IF;
-
-    -- 使用 pg_net 發送 HTTP POST 請求到 Telegram API
-    PERFORM net.http_post(
-        url := 'https://api.telegram.org/bot' || v_config.bot_token || '/sendMessage',
-        headers := '{"Content-Type": "application/json"}'::JSONB,
-        body := v_payload
-    );
+    PERFORM public._telegram_post(v_message || public._device_status_text());
 
     RETURN COALESCE(NEW, OLD);
 EXCEPTION
@@ -519,6 +533,29 @@ CREATE TRIGGER on_borrow_returned
     FOR EACH ROW
     WHEN (OLD.status = 'active' AND NEW.status = 'returned')
     EXECUTE FUNCTION public.send_telegram_notification();
+
+-- 手動發送目前借用狀況到 Telegram（僅管理員可執行）
+CREATE OR REPLACE FUNCTION public.send_borrow_status()
+RETURNS JSON AS $$
+BEGIN
+    IF NOT public.is_admin() THEN
+        RETURN json_build_object('success', false, 'error', '權限不足');
+    END IF;
+
+    IF NOT public._telegram_post(
+        '📋 目前借用狀況' || E'\n' ||
+        '━━━━━━━━━━━━━━━' || E'\n' ||
+        '時間：' || TO_CHAR(NOW() AT TIME ZONE 'Asia/Taipei', 'YYYY-MM-DD HH24:MI:SS') ||
+        public._device_status_text()
+    ) THEN
+        RETURN json_build_object('success', false, 'error', 'Telegram 通知未啟用或設定不完整');
+    END IF;
+
+    RETURN json_build_object('success', true, 'message', '已發送到 Telegram');
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+REVOKE EXECUTE ON FUNCTION public.send_borrow_status() FROM PUBLIC, anon;
 
 -- ============================================
 -- 14. 建立用戶管理 RPC 函數

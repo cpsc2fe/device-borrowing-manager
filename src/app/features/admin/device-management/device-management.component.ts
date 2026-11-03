@@ -10,6 +10,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { DeviceService, Device } from '../../../core/services/device.service';
+import { SupabaseService } from '../../../core/services/supabase.service';
 import { DeviceFormDialogComponent } from '../device-form-dialog/device-form-dialog.component';
 import { ConfirmDialogComponent } from '../../../shared/components/confirm-dialog/confirm-dialog.component';
 import { QrDialogComponent } from '../../../shared/components/qr-dialog/qr-dialog.component';
@@ -33,10 +34,16 @@ import { QrDialogComponent } from '../../../shared/components/qr-dialog/qr-dialo
     <div class="device-management-container">
       <div class="header">
         <h1>設備管理</h1>
-        <button mat-raised-button color="primary" (click)="openAddDialog()">
-          <mat-icon>add</mat-icon>
-          新增設備
-        </button>
+        <div class="header-actions">
+          <button mat-stroked-button (click)="sendStatusToTelegram()" [disabled]="sendingStatus">
+            <mat-icon>send</mat-icon>
+            {{ sendingStatus ? '發送中…' : '發送借用狀況到 TG' }}
+          </button>
+          <button mat-raised-button color="primary" (click)="openAddDialog()">
+            <mat-icon>add</mat-icon>
+            新增設備
+          </button>
+        </div>
       </div>
 
       <!-- 載入中 -->
@@ -134,6 +141,12 @@ import { QrDialogComponent } from '../../../shared/components/qr-dialog/qr-dialo
     .header h1 {
       margin: 0;
       font-size: 24px;
+    }
+
+    .header-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
     }
 
     .loading {
@@ -251,12 +264,28 @@ export class DeviceManagementComponent implements OnInit {
   devices: Device[] = [];
   displayedColumns = ['image', 'name', 'os', 'status', 'actions'];
   loading = true;
+  sendingStatus = false;
 
   constructor(
     private deviceService: DeviceService,
+    private supabase: SupabaseService,
     private dialog: MatDialog,
     private snackBar: MatSnackBar
   ) {}
+
+  async sendStatusToTelegram() {
+    this.sendingStatus = true;
+    try {
+      const { data, error } = await this.supabase.client.rpc('send_borrow_status');
+      if (error) throw error;
+      if (!data?.success) throw new Error(data?.error || '發送失敗');
+      this.snackBar.open('借用狀況已發送到 Telegram', '關閉', { duration: 3000 });
+    } catch (error: any) {
+      this.snackBar.open(error.message || '發送失敗', '關閉', { duration: 5000 });
+    } finally {
+      this.sendingStatus = false;
+    }
+  }
 
   async ngOnInit() {
     await this.loadDevices();
