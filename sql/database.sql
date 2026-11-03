@@ -152,11 +152,12 @@ USING (public.is_admin());
 
 -- ----- borrows 資料表 -----
 
--- 任何人可以讀取借用記錄（用於顯示誰在借用）
+-- 登入使用者可以讀取借用記錄（用於顯示誰在借用）
 DROP POLICY IF EXISTS "Anyone can read borrows" ON public.borrows;
-CREATE POLICY "Anyone can read borrows"
+DROP POLICY IF EXISTS "Authenticated can read borrows" ON public.borrows;
+CREATE POLICY "Authenticated can read borrows"
 ON public.borrows FOR SELECT
-TO anon, authenticated
+TO authenticated
 USING (true);
 
 -- 不開放直接 INSERT / UPDATE：借用與歸還只能透過
@@ -257,6 +258,10 @@ SELECT
 FROM public.devices d
 LEFT JOIN public.borrows b ON d.id = b.device_id AND b.status = 'active';
 
+-- View 以 owner 權限執行、不受 RLS 限制，所以用 GRANT 控制：僅登入使用者可讀
+REVOKE ALL ON public.devices_with_borrower FROM anon;
+GRANT SELECT ON public.devices_with_borrower TO authenticated;
+
 -- ============================================
 -- 9. 建立 RPC 函數：借用設備（QR Code 版本）
 -- ============================================
@@ -351,6 +356,12 @@ BEGIN
     );
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- 借用與歸還僅限登入使用者
+REVOKE EXECUTE ON FUNCTION public.borrow_device(UUID, TEXT, TEXT, TEXT) FROM PUBLIC, anon;
+REVOKE EXECUTE ON FUNCTION public.return_device(UUID) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.borrow_device(UUID, TEXT, TEXT, TEXT) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.return_device(UUID) TO authenticated;
 
 -- ============================================
 -- 11. 建立 Storage Bucket 與 Policies

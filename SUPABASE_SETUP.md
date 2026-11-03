@@ -78,26 +78,23 @@ anon public key: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 
 ### 3.1 本系統的 RLS 政策
 
-本系統採用 **QR Code 借用模式**，一般使用者不需登入即可借用設備：
+本系統要求**登入後才能使用**，帳號由管理員建立：
 
-| 資料表 | 一般用戶（匿名） | 管理員 |
-|-------|----------------|-------|
-| users | ❌ | ✅ 完整權限 |
-| devices | ✅ 讀取 | ✅ 完整權限 |
-| borrows | ✅ 讀取/新增/更新 | ✅ 完整權限 |
-| telegram_config | ❌ | ✅ 完整權限 |
+| 資料表 / 物件 | 未登入 | 一般使用者 | 管理員 |
+|-------|-------|----------------|-------|
+| users | ❌ | 讀取自己 | ✅ 完整權限 |
+| devices（含 screen_password） | ❌ | ❌ | ✅ 完整權限 |
+| devices_with_borrower（View） | ❌ | ✅ 讀取 | ✅ 讀取 |
+| borrows | ❌ | ✅ 讀取 | ✅ 讀取/刪除 |
+| telegram_config | ❌ | ❌ | ✅ 完整權限 |
 
-### 3.2 為什麼 borrows 允許匿名存取？
+### 3.2 借用與歸還如何寫入？
 
-因為借用流程是：
-1. 使用者掃描設備上的 QR Code
-2. 進入借用頁面，填寫姓名（不需登入）
-3. 系統透過 RPC 函數 `borrow_device` 原子性地建立借用記錄
+`borrows` 沒有開放直接新增或更新。借用與歸還只能透過 RPC 函數
+`borrow_device` / `return_device`（`SECURITY DEFINER`，僅授權給 `authenticated`），
+在函數內原子性地檢查設備狀態並寫入記錄。
 
-這樣設計的好處：
-- 使用者無需註冊帳號
-- 降低使用門檻
-- 透過 Telegram 通知追蹤借用紀錄
+一般使用者透過 `devices_with_borrower` View 讀取設備，此 View 不包含 `screen_password`。
 
 ### 3.3 為什麼 telegram_config 只允許管理員存取？
 
@@ -123,11 +120,13 @@ anon public key: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 
 > 💡 系統有設定 Trigger，當使用者透過 Auth 建立時會自動在 `users` 表建立對應記錄，預設 role 為 `user`。
 
-### 4.3 關於一般使用者
+### 4.3 關閉自行註冊（必要）
 
-本系統的一般使用者（借用設備的人）**不需要註冊帳號**。他們只需要：
-1. 掃描設備上的 QR Code
-2. 填寫姓名即可借用
+1. 前往 **Authentication > Sign In / Providers > Email**
+2. 關閉 **Allow new users to sign up**
+
+> ⚠️ 不關閉的話，任何人都能用前端的 publishable key 自行註冊並登入，強制登入形同虛設。
+> 一般使用者帳號由管理員在系統的「用戶管理」頁建立（`create_user` RPC），不受此設定影響。
 
 ---
 
@@ -265,7 +264,7 @@ const result = await this.supabase.client.rpc('return_device', {
 
 **解決方案：**
 1. 在 Table Editor 確認 `devices` 表有資料
-2. 確認 RLS 政策允許匿名讀取
+2. 確認已登入，且 SQL 腳本完整執行（未登入無法讀取設備）
 3. 檢查瀏覽器 Console 是否有錯誤訊息
 
 ### Q2: 借用失敗？
