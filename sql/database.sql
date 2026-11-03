@@ -449,10 +449,12 @@ BEGIN
     END IF;
 
     -- pg_net 為非同步，這裡只代表請求已送出
+    -- ponytail: 預設 5 秒逾時曾因 TLS 握手過慢而漏發；pg_net 不會重試，仍漏發再加排程重送 net._http_response 失敗項
     PERFORM net.http_post(
         url := 'https://api.telegram.org/bot' || v_config.bot_token || '/sendMessage',
         headers := '{"Content-Type": "application/json"}'::JSONB,
-        body := v_payload
+        body := v_payload,
+        timeout_milliseconds := 15000
     );
     RETURN TRUE;
 END;
