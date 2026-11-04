@@ -365,15 +365,17 @@ BEGIN
         RETURN json_build_object('success', false, 'error', '此設備已歸還');
     END IF;
 
-    -- 先更新借用記錄，再更新設備狀態
-    -- （順序反過來的話，devices 的 close_active_borrow trigger 會先結束這筆借用）
-    UPDATE public.borrows
-    SET status = 'returned', returned_at = NOW()
-    WHERE id = p_borrow_id;
-
+    -- 必須先更新設備狀態：歸還通知 trigger 在借用記錄更新當下就會讀取設備狀態，
+    -- 順序反過來會讓通知顯示設備仍為借用中。
+    -- 更新設備時 close_active_borrow trigger 會結束這筆借用並發出歸還通知。
     UPDATE public.devices
     SET status = 'available'
     WHERE id = v_device_id;
+
+    -- 保險：trigger 已處理時這裡不會更新任何資料，也不會重複發通知
+    UPDATE public.borrows
+    SET status = 'returned', returned_at = NOW()
+    WHERE id = p_borrow_id AND status = 'active';
 
     RETURN json_build_object(
         'success', true,
